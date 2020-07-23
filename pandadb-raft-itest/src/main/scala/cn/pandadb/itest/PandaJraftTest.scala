@@ -22,7 +22,10 @@ object PandaJraftTest1 {
       Thread.sleep(500)
     }
 
-    if (jraftServer.getNode.isLeader) {
+    println(jraftServer.isLeader)
+
+    if (jraftServer.isLeader) {
+      println("fffffffffffffff")
       val tx = localNeo4jDB.beginTx()
       localNeo4jDB.execute("CREATE(n:TEST {name:'TEST-NAME', age:1})")
       localNeo4jDB.execute("CREATE(n:TEST2 {name:'TEST-NAME2', age:2})")

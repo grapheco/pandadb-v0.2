@@ -15,7 +15,7 @@ object PandaJraftService {
   def commitWriteOpeartions(ops: WriteOperations): Unit = {
     val jraftServer: PandaJraftServer = PandaJraftServer.getInstance()
 
-    if (!jraftServer.getFsm.isLeader) {
+    if (!jraftServer.isLeader) {
       println("not leader")
       return
     }
@@ -33,6 +33,10 @@ object PandaJraftService {
 //        closure.failure(errorMsg, StringUtils.EMPTY)
 //        closure.run(new Status(RaftError.EINTERNAL, errorMsg))
     }
+  }
 
+  def isLeader(): Boolean = {
+    val jraftServer: PandaJraftServer = PandaJraftServer.getInstance()
+    jraftServer.isLeader
   }
 }

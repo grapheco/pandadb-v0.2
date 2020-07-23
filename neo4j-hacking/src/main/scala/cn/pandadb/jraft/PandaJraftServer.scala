@@ -74,6 +74,8 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
 
   def getNode: Node = this.node
 
+  def isLeader: Boolean = this.getNode.isLeader
+
   def getRaftGroupService: RaftGroupService = this.raftGroupService
 
   /**

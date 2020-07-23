@@ -31,7 +31,6 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   private val leaderTerm = new AtomicLong(-1)
 
   def isLeader: Boolean = this.leaderTerm.get > 0
-
   /**
     * Returns current value.
     */
@@ -55,14 +54,14 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
           case e: CodecException =>
             LOG.error("Fail to decode IncrementAndGetRequest", e)
         }
-      }
-      if (writeOperations != null) {
-        writeOperations.applyTxOpeartionsToDB(neo4jDB)
+        if (writeOperations != null) {
+          writeOperations.applyTxOpeartionsToDB(neo4jDB)
 
-//        if (closure != null) {
-//          closure.success(current)
-//          closure.run(Status.OK)
-//        }
+  //        if (closure != null) {
+  //          closure.success(current)
+  //          closure.run(Status.OK)
+  //        }
+        }
       }
       iter.next
     }

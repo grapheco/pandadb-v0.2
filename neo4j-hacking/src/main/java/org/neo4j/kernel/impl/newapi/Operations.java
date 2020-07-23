@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.newapi;
 
 import cn.pandadb.jraft.PandaJraftService;
+import cn.pandadb.jraft.operations.CustomNeo4jTxOperationsWriter;
 import cn.pandadb.jraft.operations.WriteOperations;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -142,7 +143,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
     private DefaultRelationshipScanCursor relationshipCursor;
 
     // NOTE: pandadb
-    private CustomPropertyWriteTransactionFacade customPropWriteTx;
+    private CustomNeo4jTxOperationsWriter customTxOpWriter;
     // END-NOTE
 
     public Operations( AllStoreHolder allStoreHolder, IndexTxStateUpdater updater, StorageReader statement, KernelTransactionImplementation ktx,
@@ -161,7 +162,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         this.indexingService = indexingService;
         this.config = config;
         // NOTE: pandadb
-        this.customPropWriteTx = new CustomPropertyWriteTransactionFacade();
+        this.customTxOpWriter = new CustomNeo4jTxOperationsWriter(token);
         // END-NOTE
     }
 
@@ -172,130 +173,15 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         this.relationshipCursor = cursors.allocateRelationshipScanCursor();
 
         // NOTE: pandadb
-        this.customPropWriteTx = new CustomPropertyWriteTransactionFacade();
-        System.out.println("begin tx");
+        this.customTxOpWriter = new CustomNeo4jTxOperationsWriter(token);
         // END-NOTE
     }
 
     // NOTE: pandadb
-    public CustomPropertyWriteTransactionFacade customPropWriteTx()
-    {
-        return this.customPropWriteTx;
+    public CustomNeo4jTxOperationsWriter getCustomTxOpWriter() {
+        return this.customTxOpWriter;
     }
 
-    public class CustomPropertyWriteTransactionFacade
-    {
-        private WriteOperations writeOperations = new WriteOperations();
-
-        private boolean isLeaderNode()
-        {
-            return true;
-        }
-
-        private String getNodeLabelName(int label)
-        {
-            try
-            {
-                return token().nodeLabelName(label);
-            }
-            catch ( LabelNotFoundKernelException e )
-            {
-                throw new IllegalStateException( "Label retrieved through kernel API should exist.", e );
-            }
-        }
-
-        private String getPropertyKeyName(int property)
-        {
-            try
-            {
-                return token().propertyKeyName(property);
-            }
-            catch ( PropertyKeyIdNotFoundKernelException e )
-            {
-                throw new IllegalStateException( "Property key retrieved through kernel API should exist.", e );
-            }
-        }
-
-        private boolean isSavePropertyToCustom()
-        {
-            return this.isLeaderNode();
-        }
-
-        public void nodeCreate(long nodeId)
-        {
-            if (this.isSavePropertyToCustom()) {
-                this.writeOperations.nodeCreateWithId(nodeId);
-            }
-        }
-
-        public void nodeDelete(long nodeId)
-        {
-            if (this.isSavePropertyToCustom()) {
-                this.writeOperations.nodeDelete(nodeId);
-            }
-        }
-
-        public void nodeCreateWithLabels(long nodeId, int[] labels)
-        {
-            if (this.isSavePropertyToCustom()) {
-                this.writeOperations.nodeCreateWithLabels(nodeId, labels);
-            }
-        }
-
-        public void nodeSetLabel(long nodeId, int label)
-        {
-            if (this.isSavePropertyToCustom()) {
-               this.writeOperations.nodeAddLabel(nodeId, label);
-            }
-        }
-
-        public void nodeRemoveLabel(long nodeId, int label)
-        {
-            if (this.isSavePropertyToCustom()) {
-                this.writeOperations.nodeRemoveLabel(nodeId, label);
-            }
-        }
-
-        public void nodeSetProperty(long nodeId, int property, Value value)
-        {
-            if (this.isSavePropertyToCustom()) {
-               this.writeOperations.nodeSetProperty(nodeId, property, value);
-            }
-        }
-
-        public void nodeRemoveProperty(long nodeId, int property)
-        {
-            if (this.isSavePropertyToCustom()) {
-                this.writeOperations.nodeRemoveProperty(nodeId, property);
-            }
-        }
-
-        public void commit()
-        {
-            System.out.println("Neo4j commit tx");
-            if (this.isSavePropertyToCustom()) {
-                this.writeOperations.doSerialize();
-                PandaJraftService.commitWriteOpeartions(this.writeOperations);
-            }
-        }
-
-        public void rollback()
-        {
-        }
-
-        public void undo()
-        {
-        }
-
-        public void close()
-        {
-            System.out.println();
-            System.out.println("Neo4j Close tx");
-        }
-    }
-    // END-NOTE
-
-    // NOTE: pandadb
     @Override
     public long nodeCreate(long nodeId)
     {
@@ -363,7 +249,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         long nodeId = statement.reserveNode();
         ktx.txState().nodeDoCreate( nodeId );
         // NOTE: pandadb
-        this.customPropWriteTx.nodeCreate(nodeId);
+        this.customTxOpWriter.nodeCreate(nodeId);
         // END-NOTE
         return nodeId;
     }
@@ -387,7 +273,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         long nodeId = statement.reserveNode();
         ktx.txState().nodeDoCreate( nodeId );
         // NOTE: pandadb
-        this.customPropWriteTx.nodeCreate(nodeId);
+        this.customTxOpWriter.nodeCreateWithLabels(nodeId, labels);
         // END-NOTE
         nodeCursor.single( nodeId, allStoreHolder );
         nodeCursor.next();
@@ -501,12 +387,13 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
                 }
             }
         }
-
-        // NOTE: pandadb
-        this.customPropWriteTx.nodeSetLabel(node, nodeLabel);
-        // END-NOTE
         //node is there and doesn't already have the label, let's add
         ktx.txState().nodeDoAddLabel( nodeLabel, node );
+
+        // NOTE: pandadb
+        this.customTxOpWriter.nodeSetLabel(node, nodeLabel);
+        // END-NOTE
+
         updater.onLabelChange( nodeLabel, existingPropertyKeyIds, nodeCursor, propertyCursor, ADDED_LABEL );
     }
 
@@ -547,7 +434,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             {
                 autoIndexing.nodes().entityRemoved( this, node );
                 // NOTE: pandadb
-                this.customPropWriteTx.nodeDelete(node);
+                this.customTxOpWriter.nodeDelete(node);
                 // END-NOTE
                 ktx.txState().nodeDoDelete( node );
                 return true;
@@ -571,7 +458,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
 
             autoIndexing.nodes().entityRemoved( this, node );
             // NOTE: pandadb
-            this.customPropWriteTx.nodeDelete(node);
+            this.customTxOpWriter.nodeDelete(node);
             // END-NOTE
             ktx.txState().nodeDoDelete( node );
             return true;
@@ -755,7 +642,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         sharedSchemaLock( ResourceTypes.LABEL, labelId );
 
         // NOTE: pandadb
-        this.customPropWriteTx.nodeRemoveLabel(node, labelId);
+        this.customTxOpWriter.nodeRemoveLabel(node, labelId);
         // END-NOTE
 
         ktx.txState().nodeDoRemoveLabel( labelId, node );
@@ -800,14 +687,11 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             //no existing value, we just add it
             autoIndexing.nodes().propertyAdded( this, node, propertyKey, value );
 
-            // NOTE: pandadb
-            this.customPropWriteTx.nodeSetProperty(node, propertyKey, value);
-            //if(!this.customPropWriteTx.isPreventNeo4jPropStore())
-            //{
-            //    ktx.txState().nodeDoAddProperty( node, propertyKey, value );
-            // }
-            // END-NOTE
             ktx.txState().nodeDoAddProperty( node, propertyKey, value );
+
+            // NOTE: pandadb
+            this.customTxOpWriter.nodeSetProperty(node, propertyKey, value);
+            // END-NOTE
 
             if ( hasRelatedSchema )
             {
@@ -823,14 +707,11 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             {
                 //the value has changed to a new value
 
-                // NOTE: pandadb
-                this.customPropWriteTx.nodeSetProperty(node, propertyKey, value);
-                // if(!this.customPropWriteTx.isPreventNeo4jPropStore())
-                // {
-                //    ktx.txState().nodeDoAddProperty( node, propertyKey, value );
-                // }
-                // END-NOTE
                 ktx.txState().nodeDoChangeProperty( node, propertyKey, value );
+
+                // NOTE: pandadb
+                this.customTxOpWriter.nodeSetProperty(node, propertyKey, value);
+                // END-NOTE
 
                 if ( hasRelatedSchema )
                 {
@@ -850,7 +731,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         singleNode( node );
 
         // NOTE: pandadb
-        this.customPropWriteTx.nodeRemoveProperty(node, propertyKey);
+        this.customTxOpWriter.nodeRemoveProperty(node, propertyKey);
         // END-NOTE
 
         Value existingValue = readNodeProperty( propertyKey );
@@ -889,7 +770,6 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             autoIndexing.relationships().propertyChanged( this, relationship, propertyKey, existingValue, value );
             if ( propertyHasChanged( existingValue, value ) )
             {
-
                 ktx.txState().relationshipDoReplaceProperty( relationship, propertyKey, existingValue, value );
             }
 

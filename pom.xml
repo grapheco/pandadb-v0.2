@@ -19,7 +19,6 @@
     <url>https://github.com/grapheco/pandadb-v0.2</url>
 
     <modules>
-        <module>pandadb-raft</module>
         <module>pandadb-raft-itest</module>
         <module>neo4j-hacking</module>
         <module>commons</module>
