@@ -6,5 +6,5 @@ intelligent graph database
 * ElasticSearch as costore backend
 * HBase as BLOB storage backend
 
-# license
+# Licensing
 PandaDB v0.2 is an open source product licensed under GPLv3.
