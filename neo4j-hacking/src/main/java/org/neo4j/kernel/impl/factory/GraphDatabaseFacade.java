@@ -240,7 +240,7 @@ public class GraphDatabaseFacade implements GraphDatabaseAPI, EmbeddedProxySPI
         }
     }
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
     @Override
     public Node createNode(long nodeId)
     {

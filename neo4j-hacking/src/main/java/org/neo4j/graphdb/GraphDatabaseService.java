@@ -55,7 +55,7 @@ public interface GraphDatabaseService
      */
     Node createNode();
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
     /**
      * Creates a new node with given id.
      *

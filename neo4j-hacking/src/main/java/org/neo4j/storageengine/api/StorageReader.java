@@ -107,7 +107,7 @@ public interface StorageReader extends AutoCloseable
      */
     long reserveNode();
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
     /**
      * Reserves a node id with given id for future use to store a node.
      */

@@ -37,7 +37,7 @@ public interface Write
      */
     long nodeCreate();
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
     /**
      * Create a node with given id.
      *
@@ -97,7 +97,7 @@ public interface Write
      */
     long relationshipCreate( long sourceNode, int relationshipType, long targetNode ) throws EntityNotFoundException;
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
     /**
      * Create a relationship between two nodes with given relationship id.
      *

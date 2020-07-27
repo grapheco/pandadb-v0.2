@@ -577,7 +577,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         {
             if ( failure || !success || isTerminated() )
             {
-                // NOTE: pandadb
+                // NOTE: pandadb  [customTxOperation]
                 // this.operations.customPropWriteTx().rollback();
                 // END-NOTE
                 rollback();
@@ -593,7 +593,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         {
             try
             {
-                // NOTE: pandadb
+                // NOTE: pandadb  [customTxOperation]
                 // this.operations.customPropWriteTx().close();
                 // END-NOTE
                 closed = true;
@@ -723,7 +723,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     commitTime = timeCommitted;
                 }
             }
-            // NOTE: pandadb
+            // NOTE: pandadb  [customTxOperation]
             this.operations.getCustomTxOpWriter().commit();
             // END-NOTE
             success = true;
@@ -738,7 +738,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         {
             if ( !success )
             {
-                // NOTE: pandadb
+                // NOTE: pandadb  [customTxOperation]
                 // this.operations.customPropWriteTx().rollback();
                 // END-NOTE
                 rollback();

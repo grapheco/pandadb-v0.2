@@ -440,7 +440,7 @@ public class RecordStorageReader implements StorageReader
         return commandCreationContext.nextId( StoreType.NODE );
     }
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
 
     /**
      * Because allNodeScan will use highId as the upper boundary of traversal, we should update HighestPossibleIdInUse

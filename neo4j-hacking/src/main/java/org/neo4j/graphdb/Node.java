@@ -265,7 +265,7 @@ public interface Node extends Entity
      */
     Relationship createRelationshipTo( Node otherNode, RelationshipType type );
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
     /**
      * Creates a relationship between this node and another node with given relationship id. The
      * relationship is of type <code>type</code>. It starts at this node and

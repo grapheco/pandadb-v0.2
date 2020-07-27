@@ -161,7 +161,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         this.constraintSemantics = constraintSemantics;
         this.indexingService = indexingService;
         this.config = config;
-        // NOTE: pandadb
+        // NOTE: pandadb  [customTxOperation]
         this.customTxOpWriter = new CustomNeo4jTxOperationsWriter(token);
         // END-NOTE
     }
@@ -172,12 +172,12 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         this.propertyCursor = cursors.allocatePropertyCursor();
         this.relationshipCursor = cursors.allocateRelationshipScanCursor();
 
-        // NOTE: pandadb
+        // NOTE: pandadb  [customTxOperation]
         this.customTxOpWriter = new CustomNeo4jTxOperationsWriter(token);
         // END-NOTE
     }
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId、customTxOperation]
     public CustomNeo4jTxOperationsWriter getCustomTxOpWriter() {
         return this.customTxOpWriter;
     }
@@ -222,7 +222,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
     }
     // END-NOTE: pandadb
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
 
     @Override
     public long relationshipCreate( long sourceNode, int relationshipType, long targetNode , long relationshipId)
@@ -248,7 +248,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         ktx.assertOpen();
         long nodeId = statement.reserveNode();
         ktx.txState().nodeDoCreate( nodeId );
-        // NOTE: pandadb
+        // NOTE: pandadb  [customTxOperation]
         this.customTxOpWriter.nodeCreate(nodeId);
         // END-NOTE
         return nodeId;
@@ -272,7 +272,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         ktx.statementLocks().optimistic().acquireShared( ktx.lockTracer(), ResourceTypes.LABEL, lockingIds );
         long nodeId = statement.reserveNode();
         ktx.txState().nodeDoCreate( nodeId );
-        // NOTE: pandadb
+        // NOTE: pandadb  [customTxOperation]
         this.customTxOpWriter.nodeCreateWithLabels(nodeId, labels);
         // END-NOTE
         nodeCursor.single( nodeId, allStoreHolder );
@@ -390,7 +390,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         //node is there and doesn't already have the label, let's add
         ktx.txState().nodeDoAddLabel( nodeLabel, node );
 
-        // NOTE: pandadb
+        // NOTE: pandadb  [customTxOperation]
         this.customTxOpWriter.nodeSetLabel(node, nodeLabel);
         // END-NOTE
 
@@ -433,7 +433,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             if ( ktx.txState().nodeIsAddedInThisTx( node ) )
             {
                 autoIndexing.nodes().entityRemoved( this, node );
-                // NOTE: pandadb
+                // NOTE: pandadb  [customTxOperation]
                 this.customTxOpWriter.nodeDelete(node);
                 // END-NOTE
                 ktx.txState().nodeDoDelete( node );
@@ -457,7 +457,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             acquireSharedNodeLabelLocks();
 
             autoIndexing.nodes().entityRemoved( this, node );
-            // NOTE: pandadb
+            // NOTE: pandadb  [customTxOperation]
             this.customTxOpWriter.nodeDelete(node);
             // END-NOTE
             ktx.txState().nodeDoDelete( node );
@@ -641,7 +641,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
 
         sharedSchemaLock( ResourceTypes.LABEL, labelId );
 
-        // NOTE: pandadb
+        // NOTE: pandadb  [customTxOperation]
         this.customTxOpWriter.nodeRemoveLabel(node, labelId);
         // END-NOTE
 
@@ -689,7 +689,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
 
             ktx.txState().nodeDoAddProperty( node, propertyKey, value );
 
-            // NOTE: pandadb
+            // NOTE: pandadb  [customTxOperation]
             this.customTxOpWriter.nodeSetProperty(node, propertyKey, value);
             // END-NOTE
 
@@ -709,7 +709,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
 
                 ktx.txState().nodeDoChangeProperty( node, propertyKey, value );
 
-                // NOTE: pandadb
+                // NOTE: pandadb  [customTxOperation]
                 this.customTxOpWriter.nodeSetProperty(node, propertyKey, value);
                 // END-NOTE
 
@@ -730,7 +730,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         ktx.assertOpen();
         singleNode( node );
 
-        // NOTE: pandadb
+        // NOTE: pandadb  [customTxOperation]
         this.customTxOpWriter.nodeRemoveProperty(node, propertyKey);
         // END-NOTE
 

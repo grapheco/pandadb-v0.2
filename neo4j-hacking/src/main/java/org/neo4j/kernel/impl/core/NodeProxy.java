@@ -562,7 +562,7 @@ public class NodeProxy implements Node, RelationshipFactory<Relationship>
         }
     }
 
-    // NOTE: pandadb
+    // NOTE: pandadb  [createEntityWithId]
     @Override
     public Relationship createRelationshipTo( Node otherNode, RelationshipType type , long relationshipId)
     {
