@@ -17,7 +17,7 @@ object PandaJraftTest1 {
       "127.0.0.1:8081", "127.0.0.1:8081,127.0.0.1:8082,127.0.0.1:8083")
     jraftServer.start()
 
-    while (jraftServer.getNode.getLeaderId == null){
+    while (jraftServer.getNode.getLeaderId == null) {
       println("==== no leader ====")
       Thread.sleep(500)
     }
