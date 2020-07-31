@@ -1,9 +1,10 @@
 package cn.pandadb.jraft.operations
 
+import cn.pandadb.config.PandaConfig
+
 import scala.collection.JavaConversions._
-
 import cn.pandadb.jraft.PandaJraftService
-
+import cn.pandadb.server.PandaRuntimeContext
 import org.neo4j.internal.kernel.api.exceptions.{LabelNotFoundKernelException, PropertyKeyIdNotFoundKernelException}
 import org.neo4j.values.storable.Value
 import org.neo4j.internal.kernel.api.Token
@@ -34,18 +35,34 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
     null
   }
 
-  private def isSaveOperations = PandaJraftService.isLeader()
+  private def needJraftSaveOperations: Boolean = {
+    PandaRuntimeContext.contextGet[PandaConfig]().useJraft && PandaRuntimeContext.contextGet[PandaJraftService]().isLeader()
+  }
+
+  private def needCoStoreSaveOpeartions: Boolean = {
+    if (PandaRuntimeContext.contextGet[PandaConfig]().useCoStorage) {
+      if (PandaRuntimeContext.contextGet[PandaConfig]().useJraft) {
+        PandaRuntimeContext.contextGet[PandaJraftService]().isLeader()
+      }
+      else {
+        true
+      }
+    }
+    else {
+      false
+    }
+  }
 
   def nodeCreate(nodeId: Long): Unit = {
-    if (this.isSaveOperations) this.writeOperations.nodeCreateWithId(nodeId)
+    if (this.needJraftSaveOperations) this.writeOperations.nodeCreateWithId(nodeId)
   }
 
   def nodeDelete(nodeId: Long): Unit = {
-    if (this.isSaveOperations) this.writeOperations.nodeDelete(nodeId)
+    if (this.needJraftSaveOperations) this.writeOperations.nodeDelete(nodeId)
   }
 
   def nodeCreateWithLabels(nodeId: Long, labels: Array[Int]): Unit = {
-    if (this.isSaveOperations) {
+    if (this.needJraftSaveOperations) {
       val labelNames: Array[String] = new Array[String](labels.size)
       for (i <- 0 to labels.size-1) {
         labelNames(i) = getNodeLabelName(labels(i))
@@ -56,32 +73,32 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
   }
 
   def nodeSetLabel(nodeId: Long, label: Int): Unit = {
-    if (this.isSaveOperations) {
+    if (this.needJraftSaveOperations) {
       this.writeOperations.nodeAddLabel(nodeId, getNodeLabelName(label))
     }
   }
 
   def nodeRemoveLabel(nodeId: Long, label: Int): Unit = {
-    if (this.isSaveOperations) {
+    if (this.needJraftSaveOperations) {
       this.writeOperations.nodeRemoveLabel(nodeId, getNodeLabelName(label))
     }
   }
 
   def nodeSetProperty(nodeId: Long, property: Int, value: Value): Unit = {
-    if (this.isSaveOperations) {
+    if (this.needJraftSaveOperations) {
       this.writeOperations.nodeSetProperty(nodeId, getPropertyKeyName(property), value)
     }
   }
 
   def nodeRemoveProperty(nodeId: Long, property: Int): Unit = {
-    if (this.isSaveOperations) {
+    if (this.needJraftSaveOperations) {
       this.writeOperations.nodeRemoveProperty(nodeId, getPropertyKeyName(property))
     }
   }
 
   def commit(): Unit = {
-    if (this.isSaveOperations) {
-      PandaJraftService.commitWriteOpeartions(this.writeOperations)
+    if (this.needJraftSaveOperations) {
+      PandaRuntimeContext.contextGet[PandaJraftService]().commitWriteOpeartions(this.writeOperations)
     }
   }
 

@@ -70,6 +70,10 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     System.out.println("Started counter server at port:" + this.node.getNodeId.getPeerId.getPort)
   }
 
+  def shutdown(): Unit = {
+    this.node.shutdown()
+  }
+
   def getFsm: PandaGraphStateMachine = this.fsm
 
   def getNode: Node = this.node
@@ -94,20 +98,20 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
 }
 
 
-object PandaJraftServer {
-  private var instance: PandaJraftServer = null
-
-  def apply(neo4jDB: GraphDatabaseService,
-            dataPath: String,
-            groupId: String,
-            serverIdStr: String,
-            initConfStr: String): PandaJraftServer = {
-    if (instance == null) {
-      instance = new PandaJraftServer(neo4jDB, dataPath, groupId, serverIdStr, initConfStr)
-    }
-    instance
-  }
-
-  def getInstance(): PandaJraftServer = instance
-
-}
+//object PandaJraftServer {
+//  private var instance: PandaJraftServer = null
+//
+//  def apply(neo4jDB: GraphDatabaseService,
+//            dataPath: String,
+//            groupId: String,
+//            serverIdStr: String,
+//            initConfStr: String): PandaJraftServer = {
+//    if (instance == null) {
+//      instance = new PandaJraftServer(neo4jDB, dataPath, groupId, serverIdStr, initConfStr)
+//    }
+//    instance
+//  }
+//
+//  def getInstance(): PandaJraftServer = instance
+//
+//}

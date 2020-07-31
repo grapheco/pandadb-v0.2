@@ -1,9 +1,8 @@
-package cn.pandadb.util
+package cn.pandadb.driver.util
 
 import java.time.{LocalDate, LocalDateTime, LocalTime, OffsetTime, ZonedDateTime}
 import java.time.temporal.Temporal
 
-import cn.pandadb.blob.BlobEntry
 import cn.pandadb.driver.values.{Label, Node, Relationship, RelationshipType, Value}
 
 import scala.collection.mutable
@@ -14,8 +13,7 @@ import cn.pandadb.driver.result.{InternalRecords, Record}
 import cn.pandadb.driver.values
 import org.neo4j.kernel.impl.core.{NodeProxy, RelationshipProxy}
 import org.neo4j.graphdb.Path
-import org.neo4j.values.storable.{DurationValue => Neo4jDurationValue, PointValue => Neo4jPointValue}
-import org.neo4j.values.storable.{StringValue, IntValue, LongValue, FloatValue, DoubleValue}
+import org.neo4j.values.storable.{BlobValue, DoubleValue, FloatValue, IntValue, LongValue, StringValue, DurationValue => Neo4jDurationValue, PointValue => Neo4jPointValue}
 import org.neo4j.graphdb.{Label => Neo4jLabel, Node => Neo4jNode, Relationship => Neo4jRelationship, RelationshipType => Neo4jType}
 
 import scala.collection.mutable.ArrayBuffer
@@ -34,6 +32,7 @@ object ValueConverter {
       case i: LongValue => values.IntegerValue(i.asInstanceOf[LongValue].value())
       case i: FloatValue => values.FloatValue(i.asInstanceOf[FloatValue].value())
       case i: DoubleValue => values.FloatValue(i.asInstanceOf[DoubleValue].value())
+//      case b: BlobValue => // todo
       case node: NodeProxy => convertNode(node)
       case relationship: RelationshipProxy => convertRelationship(relationship)
       case path: Path => convertPath(path)
@@ -50,7 +49,7 @@ object ValueConverter {
       case localTime: LocalTime => values.LocalTimeValue(localTime)
       case localDateTime: LocalDateTime => values.LocalDateTimeValue(localDateTime)
       case point: Neo4jPointValue => convertPoint(point)
-      case blob: BlobEntry => values.BlobEntryValue(blob)
+//      case blob: BlobEntry => values.BlobEntryValue(blob)
 //      case map: Map[String, Value] => MapValue(map)
       case listString: Array[String] => convertList(listString)
       case listDouble: Array[Double] => convertList(listDouble)

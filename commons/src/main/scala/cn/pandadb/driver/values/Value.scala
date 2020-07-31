@@ -2,7 +2,7 @@ package cn.pandadb.driver.values
 
 import java.time.{LocalDate, LocalDateTime, LocalTime, OffsetTime, ZonedDateTime}
 
-import cn.pandadb.blob.BlobEntry
+import org.neo4j.blob.BlobEntry
 
 import scala.collection.mutable.{ArrayBuffer, Buffer}
 

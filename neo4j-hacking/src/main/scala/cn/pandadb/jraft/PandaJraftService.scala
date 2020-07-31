@@ -1,22 +1,31 @@
 package cn.pandadb.jraft
 
 import java.nio.ByteBuffer
+import java.nio.file.Paths
 
+import cn.pandadb.config.PandaConfig
 import cn.pandadb.jraft.operations.WriteOperations
+import cn.pandadb.server.PandaRuntimeContext
 import com.alipay.remoting.exception.CodecException
 import com.alipay.remoting.serialization.SerializerManager
 import com.alipay.sofa.jraft.Status
 import com.alipay.sofa.jraft.entity.Task
 import com.alipay.sofa.jraft.error.RaftError
 import org.apache.commons.lang.StringUtils
+import org.neo4j.graphdb.GraphDatabaseService
+import org.neo4j.graphdb.factory.GraphDatabaseSettings
+import org.neo4j.kernel.configuration.Config
+import org.neo4j.kernel.lifecycle.Lifecycle
 
-object PandaJraftService {
+
+class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle  {
+  var jraftServer: PandaJraftServer = null
+  val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+
+  PandaRuntimeContext.contextPut[PandaJraftService](this)
 
   def commitWriteOpeartions(ops: WriteOperations): Unit = {
-    val jraftServer: PandaJraftServer = PandaJraftServer.getInstance()
-
     if (!jraftServer.isLeader) {
-      println("not leader")
       return
     }
 
@@ -36,7 +45,26 @@ object PandaJraftService {
   }
 
   def isLeader(): Boolean = {
-    val jraftServer: PandaJraftServer = PandaJraftServer.getInstance()
     jraftServer.isLeader
+  }
+
+  override def init(): Unit = {
+    val dataPath: String = pandaConfig.jraftDataPath
+    val serverId: String = pandaConfig.jraftServerId
+    val groupId: String = pandaConfig.jraftGroupId
+    val peers: String = pandaConfig.jraftPeerIds
+    jraftServer = new PandaJraftServer(neo4jDB, dataPath, groupId, serverId, peers)
+    println("==== jraft server created ====")
+  }
+
+  override def start(): Unit = {
+    jraftServer.start()
+    println("==== jraft server started ====")
+  }
+
+  override def stop(): Unit = {}
+
+  override def shutdown(): Unit = {
+    jraftServer.shutdown()
   }
 }

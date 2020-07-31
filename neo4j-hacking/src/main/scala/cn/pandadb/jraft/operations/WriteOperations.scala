@@ -4,10 +4,10 @@ import java.nio.ByteBuffer
 
 import scala.collection.mutable.ArrayBuffer
 import org.neo4j.values.storable.{Value => Neo4jValue}
-import org.neo4j.graphdb.{GraphDatabaseService, Relationship, Label => Neo4jLabel, Node => Neo4jNode, Relationship => Neo4jRelationship, RelationshipType => Neo4jType}
+import org.neo4j.graphdb.{GraphDatabaseService, Label => Neo4jLabel, RelationshipType => Neo4jType}
 
-import cn.pandadb.jraft.PandaJraftServer
-import cn.pandadb.util.ValueConverter
+//import cn.pandadb.jraft.PandaJraftServer
+import cn.pandadb.driver.util.ValueConverter
 
 // scalastyle:off println
 class WriteOperations extends Serializable {
