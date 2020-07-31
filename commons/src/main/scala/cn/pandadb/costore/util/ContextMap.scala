@@ -1,4 +1,4 @@
-package cn.pandadb.util
+package cn.pandadb.costore.util
 
 import scala.collection.Set
 import scala.collection.mutable.{Map => MMap}

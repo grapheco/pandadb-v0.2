@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cn.pandadb.util
+package cn.pandadb.costore.util
 
 import java.io.File
 

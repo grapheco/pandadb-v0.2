@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.v3_5.util.attribution.Id
 import org.neo4j.cypher.internal.v3_5.util.{Eagerly, InternalException}
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.{NodeValue, RelationshipValue}
-import cn.pandadb.util._
+import cn.pandadb.costore.util._
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionContext
 
 /**

@@ -1,11 +1,11 @@
 package cn.pandadb.costore
 
-import cn.pandadb.util._
+import cn.pandadb.costore.util._
 
 class ExternalPropertiesModule extends PandaModule {
   override def init(ctx: PandaModuleContext): Unit = {
     val conf = ctx.configuration;
-    import cn.pandadb.util.ConfigUtils._
+    import cn.pandadb.costore.util.ConfigUtils._
 
     val isExternalPropertyStorageEnabled = conf.getValueAsBoolean("external.property.storage.enabled", false)
     if (isExternalPropertyStorageEnabled) {

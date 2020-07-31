@@ -9,7 +9,7 @@ import scala.collection.{AbstractIterator, mutable}
 import scala.collection.mutable.ArrayBuffer
 import org.neo4j.cypher.internal.runtime.interpreted.{NFLessThan, NFPredicate, _}
 import org.neo4j.values.storable._
-import cn.pandadb.util.{Configuration, PandaModuleContext}
+import cn.pandadb.costore.util.{Configuration, PandaModuleContext}
 import com.alibaba.fastjson.JSONObject
 import org.apache.http.HttpHost
 import org.elasticsearch.client.{RequestOptions, RestClient, RestHighLevelClient}
@@ -34,7 +34,7 @@ import org.elasticsearch.search.{Scroll, SearchHit}
 class InElasticSearchPropertyNodeStoreFactory extends ExternalPropertyStoreFactory {
   override def create(conf: Configuration): CustomPropertyNodeStore = {
 
-    import cn.pandadb.util.ConfigUtils._
+    import cn.pandadb.costore.util.ConfigUtils._
 
     val host = conf.getRequiredValueAsString("external.properties.store.es.host")
     val port = conf.getRequiredValueAsInt("external.properties.store.es.port")

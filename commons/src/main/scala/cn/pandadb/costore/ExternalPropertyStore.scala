@@ -1,6 +1,6 @@
 package cn.pandadb.costore
 
-import cn.pandadb.util.{ClosableModuleComponent, Configuration, PandaException}
+import cn.pandadb.costore.util.{ClosableModuleComponent, Configuration}
 import org.neo4j.cypher.internal.runtime.interpreted.NFPredicate
 import org.neo4j.values.storable.{Value, Values}
 import org.neo4j.values.virtual.{NodeValue, VirtualValues}
@@ -93,9 +93,9 @@ case class MutableNodeWithProperties(id: Long) {
 }
 
 class BufferedExternalPropertyWriteTransaction(
-                                                   nodeReader: CustomPropertyNodeReader,
-                                                   commitPerformer: GroupedOpVisitor,
-                                                   undoPerformer: GroupedOpVisitor)
+                                                nodeReader: CustomPropertyNodeReader,
+                                                commitPerformer: GroupedOpVisitor,
+                                                undoPerformer: GroupedOpVisitor)
   extends PropertyWriteTransaction {
   val bufferedOps = ArrayBuffer[BufferedPropertyOp]();
   val oldState = mutable.Map[Long, MutableNodeWithProperties]();
