@@ -1,18 +1,19 @@
 package cn.pandadb.jraft.operations
 
 import cn.pandadb.config.PandaConfig
-import cn.pandadb.costore.CustomPropertyNodeStore
+import cn.pandadb.costore.{CustomPropertyNodeStore, PropertyWriteTransaction}
 
 import scala.collection.JavaConversions._
 import cn.pandadb.jraft.PandaJraftService
 import cn.pandadb.server.PandaRuntimeContext
-import org.neo4j.internal.kernel.api.exceptions.{LabelNotFoundKernelException, PropertyKeyIdNotFoundKernelException}
+import org.neo4j.internal.kernel.api.exceptions.{KernelException, LabelNotFoundKernelException, PropertyKeyIdNotFoundKernelException}
 import org.neo4j.values.storable.Value
 import org.neo4j.internal.kernel.api.Token
 
 class CustomNeo4jTxOperationsWriter(token: Token) {
-  private val writeOperations = new WriteOperations()
-  private val costoreTx = PandaRuntimeContext.contextGet[CustomPropertyNodeStore]().beginWriteTransaction()
+  private val config: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+  private var writeOperations: WriteOperations = null
+  private var costoreTx: PropertyWriteTransaction = null
 
   private def getNodeLabelName(label: Int): String = {
     try
@@ -32,18 +33,22 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
     }
   }
 
-  private def getRelationshipTypeName(realationType: Int): String = {
-    // todo
-    null
+  private def getRelationshipTypeName(relationType: Int): String = {
+    try
+      token.relationshipTypeName(relationType)
+    catch {
+      case e: KernelException =>
+        throw new IllegalStateException("RelationType retrieved through kernel API should exist.", e)
+    }
   }
 
   private def needJraftSaveOperations: Boolean = {
-    PandaRuntimeContext.contextGet[PandaConfig]().useJraft && PandaRuntimeContext.contextGet[PandaJraftService]().isLeader()
+    config.useJraft && PandaRuntimeContext.contextGet[PandaJraftService]().isLeader()
   }
 
   private def needCoStoreSaveOpeartions: Boolean = {
-    if (PandaRuntimeContext.contextGet[PandaConfig]().useCoStorage) {
-      if (PandaRuntimeContext.contextGet[PandaConfig]().useJraft) {
+    if (config.useCoStorage) {
+      if (config.useJraft) {
         PandaRuntimeContext.contextGet[PandaJraftService]().isLeader()
       }
       else {
@@ -53,6 +58,16 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
     else {
       false
     }
+  }
+
+  def initialize(): Unit = {
+    if (needJraftSaveOperations) {
+      writeOperations = new WriteOperations()
+    }
+    if (needCoStoreSaveOpeartions) {
+      costoreTx = PandaRuntimeContext.contextGet[CustomPropertyNodeStore]().beginWriteTransaction()
+    }
+
   }
 
   def nodeCreate(nodeId: Long): Unit = {
@@ -116,8 +131,32 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
     }
   }
 
-  def commit(): Unit = {
+  def relationshipCreate(relId: Long, sourceNode: Long, relationshipType: Int, targetNode: Long): Unit = {
     if (this.needJraftSaveOperations) {
+      this.writeOperations.relationshipCreate(relId, sourceNode, getRelationshipTypeName(relationshipType), targetNode)
+    }
+  }
+  def relationshipDelete (relationship: Long): Unit = {
+    if (this.needJraftSaveOperations) {
+      this.writeOperations.relationshipDelete(relationship)
+    }
+  }
+  def relationshipSetProperty(relationship: Long, propertyKey: Int, value: Value): Unit = {
+    if (this.needJraftSaveOperations) {
+      this.writeOperations.relationshipSetProperty(relationship, getPropertyKeyName(propertyKey), value)
+    }
+  }
+  def relationshipRemoveProperty(relationship: Long, propertyKey: Int): Unit = {
+    if (this.needJraftSaveOperations) {
+      this.writeOperations.relationshipRemoveProperty(relationship, getPropertyKeyName(propertyKey))
+    }
+  }
+
+  def commit(): Unit = {
+    println("neo4j tx commit")
+    println(this.writeOperations)
+    println(this.costoreTx)
+    if (this.needJraftSaveOperations && this.writeOperations != null && this.writeOperations.size>0) {
       PandaRuntimeContext.contextGet[PandaJraftService]().commitWriteOpeartions(this.writeOperations)
     }
     if (this.needCoStoreSaveOpeartions) {

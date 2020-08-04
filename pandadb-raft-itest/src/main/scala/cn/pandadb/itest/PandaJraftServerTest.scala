@@ -11,6 +11,7 @@ import cn.pandadb.server.PandaRuntimeContext
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.server.CommunityBootstrapper
 import cn.pandadb.jraft.PandaJraftService
+import org.neo4j.graphdb.GraphDatabaseService
 
 object PandaJraftTest1 {
 
@@ -20,12 +21,15 @@ object PandaJraftTest1 {
 
     val dbFile = Paths.get("/testoutput", "data1").toFile()
     neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
-    println(PandaRuntimeContext.contextGet[PandaConfig]())
-    while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId==null){
-      println("no leader")
-      Thread.sleep(500)
+    val config = PandaRuntimeContext.contextGet[PandaConfig]()
+    if (config.useJraft) {
+      while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId==null){
+        println("no leader")
+        Thread.sleep(500)
+      }
+      println(PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId)
     }
-    println(PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId)
+
   }
 
 }
@@ -53,4 +57,14 @@ object PandaJraftTest3 {
 
   }
 
+}
+
+object Test4 {
+  def main (args: Array[String] ): Unit = {
+    val dbFile = new File("./output/testdb")
+    val confFile = new File("testinput/test1.conf")
+    //        neo4jServer.start(dbFile, Optional.of(confFile), new HashMap<String,String>());
+    val db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbFile).loadPropertiesFromFile(confFile.getPath).newGraphDatabase
+    db.execute("create (n:person{name:'test2', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>})")
+}
 }

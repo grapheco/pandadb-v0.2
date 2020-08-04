@@ -578,7 +578,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             if ( failure || !success || isTerminated() )
             {
                 // NOTE: pandadb  [customTxOperation]
-                // this.operations.customPropWriteTx().rollback();
+                this.operations.getCustomTxOpWriter().rollback();
                 // END-NOTE
                 rollback();
                 failOnNonExplicitRollbackIfNeeded();
@@ -594,7 +594,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             try
             {
                 // NOTE: pandadb  [customTxOperation]
-                // this.operations.customPropWriteTx().close();
+                this.operations.getCustomTxOpWriter().close();
                 // END-NOTE
                 closed = true;
                 closing = false;
@@ -739,7 +739,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             if ( !success )
             {
                 // NOTE: pandadb  [customTxOperation]
-                // this.operations.customPropWriteTx().rollback();
+                this.operations.getCustomTxOpWriter().rollback();
                 // END-NOTE
                 rollback();
             }

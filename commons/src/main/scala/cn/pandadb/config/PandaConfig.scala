@@ -29,8 +29,8 @@ class PandaConfig(config: Config) {
   def useCoStorage: Boolean = config.getRaw(SettingKeys.useCoStorage).orElse("false").toBoolean
 
   def activeDatabase: String = config.get(GraphDatabaseSettings.active_database)
-  def dbPath: String = config.get(GraphDatabaseSettings.data_directory).getAbsolutePath
-  def jraftDataPath: String = Paths.get(dbPath, "jraft").toString
+  def dataPath: String = config.get(GraphDatabaseSettings.data_directory).getAbsolutePath
+  def jraftDataPath: String = Paths.get(dataPath, "jraft").toString
 
   def costoreFactory: String = config.getRaw(SettingKeys.costoreFactory).get()
   def esHost: String = config.getRaw(SettingKeys.esHost).get()
@@ -49,7 +49,7 @@ class PandaConfig(config: Config) {
       useJraft: ${this.useJraft}
       useCoStorage: ${this.useCoStorage}
       activeDatabase: ${this.activeDatabase}
-      dbPath: ${this.dbPath}
+      dataPath: ${this.dataPath}
       jraftDataPath: ${this.jraftDataPath}"""
   }
 }
