@@ -80,9 +80,9 @@ import org.neo4j.scheduler.Group;
 
 import cn.pandadb.config.PandaConfig;
 import cn.pandadb.costore.ExternalPropertyStoreFactory;
+import cn.pandadb.costore.CustomPropertyNodeStore;
 import cn.pandadb.jraft.PandaJraftService;
 import cn.pandadb.server.PandaRuntimeContext;
-import cn.pandadb.costore.CustomPropertyNodeStore;
 
 // NOTE: pandadb
 // END-NOTE: pandadb
@@ -240,6 +240,7 @@ public class GraphDatabaseFacadeFactory
         if (pandaConfig.useCoStorage()) {
             try {
                 ExternalPropertyStoreFactory costoreFactory = (ExternalPropertyStoreFactory) Class.forName(pandaConfig.costoreFactory()).newInstance();
+                System.out.println(CustomPropertyNodeStore.class.getName());
                 PandaRuntimeContext.contextPut(CustomPropertyNodeStore.class.getName(), costoreFactory.create(pandaConfig));
             } catch (Exception e) {
                 e.printStackTrace();

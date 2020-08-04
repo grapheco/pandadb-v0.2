@@ -10,7 +10,7 @@ object SettingKeys {
   val jraftGroupId = "cn.pandadb.jraft.server.group.id"  // string
   val jraftPeerIds = "cn.pandadb.jraft.server.peers"  // string
   val useJraft = "cn.pandadb.jraft.use"  // boolean
-  val useCoStorage = "cn.pandadb.costorage.use"  // boolean
+  val useCoStorage = "costore.enable"  // boolean
   val costoreFactory = "costore.factory"
   val esHost = "costore.es.host"
   val esPort = "costore.es.port"
@@ -38,9 +38,8 @@ class PandaConfig(config: Config) {
   def esSchema: String = config.getRaw(SettingKeys.esSchema).get()
   def esIndex: String = config.getRaw(SettingKeys.esIndex).get()
   def esType: String = config.getRaw(SettingKeys.esType).get()
-  def esScrollSize: Int = config.getRaw(SettingKeys.esScrollSize).get().toInt
-  def esScrollTime: Int = config.getRaw(SettingKeys.esScrollTime).get().toInt
-
+  def esScrollSize: Int = config.getRaw(SettingKeys.esScrollSize).orElse("1000").toInt
+  def esScrollTime: Int = config.getRaw(SettingKeys.esScrollTime).orElse("10").toInt
 
   override def toString: String = {
     s"""jraftServerId: ${this.jraftServerId}

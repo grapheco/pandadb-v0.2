@@ -1,7 +1,4 @@
-package cn.pandadb.externalprops
-
-import java.util
-
+package cn.pandadb.costore
 import cn.pandadb.config.PandaConfig
 import cn.pandadb.costore.{BufferedExternalPropertyWriteTransaction, CustomPropertyNodeStore, ExternalPropertyStoreFactory, GroupedOpVisitor, GroupedOps, MutableNodeWithProperties, NodeWithProperties, PropertyWriteTransaction}
 
@@ -95,11 +92,11 @@ object EsUtil {
       id = doc.get(idName).get.asInstanceOf[Int].toLong
     }
     val labels = ArrayBuffer[String]()
-    if (doc.contains(labelName)) doc.get(labelName).get.asInstanceOf[util.ArrayList[String]].foreach(u => labels += u)
+    if (doc.contains(labelName)) doc.get(labelName).get.asInstanceOf[java.util.ArrayList[String]].foreach(u => labels += u)
     doc.map(field =>
       if (!field._1.equals(idName) && !field._1.equals(labelName) ) {
-        if (field._2.isInstanceOf[util.ArrayList[Object]]) {
-          props(field._1) = getValueFromArray(field._2.asInstanceOf[util.ArrayList[Object]].toArray())
+        if (field._2.isInstanceOf[java.util.ArrayList[Object]]) {
+          props(field._1) = getValueFromArray(field._2.asInstanceOf[java.util.ArrayList[Object]].toArray())
         }
         else props(field._1) = Values.of(field._2)
       }
