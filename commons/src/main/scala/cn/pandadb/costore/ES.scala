@@ -2,6 +2,7 @@ package cn.pandadb.externalprops
 
 import java.util
 
+import cn.pandadb.config.PandaConfig
 import cn.pandadb.costore.{BufferedExternalPropertyWriteTransaction, CustomPropertyNodeStore, ExternalPropertyStoreFactory, GroupedOpVisitor, GroupedOps, MutableNodeWithProperties, NodeWithProperties, PropertyWriteTransaction}
 
 import scala.collection.JavaConversions._
@@ -32,18 +33,8 @@ import org.elasticsearch.search.{Scroll, SearchHit}
 
 
 class InElasticSearchPropertyNodeStoreFactory extends ExternalPropertyStoreFactory {
-  override def create(conf: Configuration): CustomPropertyNodeStore = {
-
-    import cn.pandadb.costore.util.ConfigUtils._
-
-    val host = conf.getRequiredValueAsString("external.properties.store.es.host")
-    val port = conf.getRequiredValueAsInt("external.properties.store.es.port")
-    val schema = conf.getRequiredValueAsString("external.properties.store.es.schema")
-    val scrollSize = conf.getRequiredValueAsInt("external.properties.store.es.scroll.size")
-    val scrollContainTime = conf.getRequiredValueAsInt("external.properties.store.es.scroll.time.minutes")
-    val indexName = conf.getRequiredValueAsString("external.properties.store.es.index")
-    val typeName = conf.getRequiredValueAsString("external.properties.store.es.type")
-    new InElasticSearchPropertyNodeStore(host, port, indexName, typeName, schema, scrollSize, scrollContainTime)
+  override def create(conf: PandaConfig): CustomPropertyNodeStore = {
+    new InElasticSearchPropertyNodeStore(conf.esHost, conf.esPort, conf.esIndex, conf.esType, conf.esSchema, conf.esScrollSize, conf.esScrollTime)
   }
 }
 

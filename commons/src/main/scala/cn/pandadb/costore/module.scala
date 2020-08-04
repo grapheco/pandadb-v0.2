@@ -7,9 +7,9 @@ class ExternalPropertiesModule extends PandaModule {
     val conf = ctx.configuration;
     import cn.pandadb.costore.util.ConfigUtils._
 
-    val isExternalPropertyStorageEnabled = conf.getValueAsBoolean("external.property.storage.enabled", false)
+    val isExternalPropertyStorageEnabled = conf.useCoStorage
     if (isExternalPropertyStorageEnabled) {
-      val factoryClassName = conf.getRequiredValueAsString("external.properties.store.factory")
+      val factoryClassName = conf.costoreFactory
 
       val store = Class.forName(factoryClassName).newInstance().asInstanceOf[ExternalPropertyStoreFactory].create(conf)
       ExternalPropertiesContext.bindCustomPropertyNodeStore(store);

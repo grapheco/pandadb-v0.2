@@ -1,5 +1,6 @@
 package cn.pandadb.costore
 
+import cn.pandadb.config.PandaConfig
 import cn.pandadb.costore.util.{ClosableModuleComponent, Configuration}
 import org.neo4j.cypher.internal.runtime.interpreted.NFPredicate
 import org.neo4j.values.storable.{Value, Values}
@@ -12,7 +13,7 @@ import scala.collection.mutable.ArrayBuffer
   * Created by bluejoe on 2019/10/7.
   */
 trait ExternalPropertyStoreFactory {
-  def create(conf: Configuration): CustomPropertyNodeStore;
+  def create(conf: PandaConfig): CustomPropertyNodeStore;
 }
 
 trait CustomPropertyNodeReader {
