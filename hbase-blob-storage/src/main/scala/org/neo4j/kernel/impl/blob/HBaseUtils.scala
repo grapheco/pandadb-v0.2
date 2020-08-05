@@ -6,7 +6,7 @@ import java.util.{Properties, UUID}
 
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
-import org.neo4j.blob.impl.BlobFactory
+import org.neo4j.blob.impl.{BlobFactory, BlobIdFactory}
 import org.neo4j.blob.util.{Logging, StreamUtils}
 import org.neo4j.blob.{Blob, BlobId, InputStreamSource, MimeType}
 
@@ -40,7 +40,7 @@ class HBaseUtils(columnCount: Int = 100) extends Logging {
 
   def rowCol2BlobId(row: Array[Byte], col: Array[Byte]): BlobId = {
     val bidBytes: Array[Byte] = Array.concat(row, col)
-    BlobId.fromBytes(bidBytes)
+    BlobIdFactory.fromBytes(bidBytes)
   }
 
   // merge [blob.mimeType.code, blob.length, blob.toBytes] and save to one cell
@@ -96,7 +96,7 @@ class HBaseUtils(columnCount: Int = 100) extends Logging {
       val buffer = new ArrayBuffer[(BlobId, Blob)]()
 
       for (entry: util.Map.Entry[Array[Byte], Array[Byte]] <- res.getFamilyMap(columnFamily).entrySet()) {
-        val blobId = BlobId.fromBytes(Array.concat(row, entry.getKey))
+        val blobId = BlobIdFactory.fromBytes(Array.concat(row, entry.getKey))
         val blob = cellDataToBlob(entry.getValue)
 
         buffer.append((blobId, blob))

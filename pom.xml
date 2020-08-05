@@ -208,11 +208,14 @@
                 <!--<artifactId>curator-recipes</artifactId>-->
                 <!--<version>2.10.0</version>-->
             <!--</dependency>-->
+
+            <!-- hbase blob dependency-->
             <dependency>
                 <groupId>org.apache.hbase</groupId>
                 <artifactId>hbase-client</artifactId>
                 <version>2.0.2</version>
             </dependency>
+            <!-- hbase blob dependency-->
         </dependencies>
     </dependencyManagement>
     <build>
