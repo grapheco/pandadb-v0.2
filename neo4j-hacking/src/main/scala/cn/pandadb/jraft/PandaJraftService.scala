@@ -25,7 +25,7 @@ class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle  {
   PandaRuntimeContext.contextPut[PandaJraftService](this)
 
   def commitWriteOpeartions(ops: WriteOperations): Unit = {
-    if (!jraftServer.isLeader) {
+    if (!jraftServer.isLeader || ops.size == 0) {
       return
     }
 

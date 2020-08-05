@@ -2,6 +2,8 @@ package cn.pandadb.costore.util
 
 import java.io.File
 
+import cn.pandadb.config.PandaConfig
+
 import scala.collection.mutable.ArrayBuffer
 
 trait ClosableModuleComponent {
@@ -14,7 +16,7 @@ trait PandaModule extends ClosableModuleComponent {
   def init(ctx: PandaModuleContext);
 }
 
-case class PandaModuleContext(configuration: Configuration, storeDir: File, sharedContext: ContextMap) {
+case class PandaModuleContext(configuration: PandaConfig, storeDir: File, sharedContext: ContextMap) {
 }
 
 class PandaModules extends Logging {

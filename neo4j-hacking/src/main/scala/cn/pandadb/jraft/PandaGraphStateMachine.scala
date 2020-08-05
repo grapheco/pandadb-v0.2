@@ -22,23 +22,14 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   private val LOG = LoggerFactory.getLogger(classOf[PandaGraphStateMachine])
 
   /**
-    * Counter value
-    */
-//  private val value = new AtomicLong(0)
-  /**
     * Leader term
     */
   private val leaderTerm = new AtomicLong(-1)
 
   def isLeader: Boolean = this.leaderTerm.get > 0
-  /**
-    * Returns current value.
-    */
-//  def getValue: Long = this.value.get
 
   override def onApply(iter: SofaIterator): Unit = {
     while ( iter.hasNext() ) {
-//      var current = 0
       var writeOperations: WriteOperations = null
 //      var closure = null
 //      if (iter.done != null) { // This task is applied by this node, get value from closure to avoid additional parsing.

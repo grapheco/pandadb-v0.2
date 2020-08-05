@@ -173,7 +173,7 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         this.relationshipCursor = cursors.allocateRelationshipScanCursor();
 
         // NOTE: pandadb  [customTxOperation]
-        this.customTxOpWriter = new CustomNeo4jTxOperationsWriter(token);
+        this.customTxOpWriter.initialize();
         // END-NOTE
     }
 
@@ -334,6 +334,9 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
 
         long id = statement.reserveRelationship();
         ktx.txState().relationshipDoCreate( id, relationshipType, sourceNode, targetNode );
+        // NOTE: pandadb  [customTxOperation]
+        this.customTxOpWriter.relationshipCreate(id, sourceNode, relationshipType, targetNode);
+        // END-NOTE
         return id;
     }
 
@@ -498,7 +501,9 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             ktx.assertOpen();
 
             autoIndexing.relationships().entityRemoved( this, relationship );
-
+            // NOTE: pandadb  [customTxOperation]
+            this.customTxOpWriter.relationshipDelete(relationship);
+            // END-NOTE
             TransactionState txState = ktx.txState();
             if ( txState.relationshipIsAddedInThisTx( relationship ) )
             {
@@ -762,6 +767,9 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         {
             autoIndexing.relationships().propertyAdded( this, relationship, propertyKey, value );
             ktx.txState().relationshipDoReplaceProperty( relationship, propertyKey, NO_VALUE, value );
+            // NOTE: pandadb  [customTxOperation]
+            this.customTxOpWriter.relationshipSetProperty(relationship, propertyKey, value);
+            // END-NOTE
             return NO_VALUE;
         }
         else
@@ -771,6 +779,9 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
             if ( propertyHasChanged( existingValue, value ) )
             {
                 ktx.txState().relationshipDoReplaceProperty( relationship, propertyKey, existingValue, value );
+                // NOTE: pandadb  [customTxOperation]
+                this.customTxOpWriter.relationshipSetProperty(relationship, propertyKey, value);
+                // END-NOTE
             }
 
             return existingValue;
@@ -784,6 +795,11 @@ public class Operations implements Write, ExplicitIndexWrite, SchemaWrite
         acquireExclusiveRelationshipLock( relationship );
         ktx.assertOpen();
         singleRelationship( relationship );
+
+        // NOTE: pandadb  [customTxOperation]
+        this.customTxOpWriter.relationshipRemoveProperty(relationship, propertyKey);
+        // END-NOTE
+
         Value existingValue = readRelationshipProperty( propertyKey );
 
         if ( existingValue != NO_VALUE )

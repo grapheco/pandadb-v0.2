@@ -1,7 +1,5 @@
-package cn.pandadb.externalprops
-
-import java.util
-
+package cn.pandadb.costore
+import cn.pandadb.config.PandaConfig
 import cn.pandadb.costore.{BufferedExternalPropertyWriteTransaction, CustomPropertyNodeStore, ExternalPropertyStoreFactory, GroupedOpVisitor, GroupedOps, MutableNodeWithProperties, NodeWithProperties, PropertyWriteTransaction}
 
 import scala.collection.JavaConversions._
@@ -32,18 +30,8 @@ import org.elasticsearch.search.{Scroll, SearchHit}
 
 
 class InElasticSearchPropertyNodeStoreFactory extends ExternalPropertyStoreFactory {
-  override def create(conf: Configuration): CustomPropertyNodeStore = {
-
-    import cn.pandadb.costore.util.ConfigUtils._
-
-    val host = conf.getRequiredValueAsString("external.properties.store.es.host")
-    val port = conf.getRequiredValueAsInt("external.properties.store.es.port")
-    val schema = conf.getRequiredValueAsString("external.properties.store.es.schema")
-    val scrollSize = conf.getRequiredValueAsInt("external.properties.store.es.scroll.size")
-    val scrollContainTime = conf.getRequiredValueAsInt("external.properties.store.es.scroll.time.minutes")
-    val indexName = conf.getRequiredValueAsString("external.properties.store.es.index")
-    val typeName = conf.getRequiredValueAsString("external.properties.store.es.type")
-    new InElasticSearchPropertyNodeStore(host, port, indexName, typeName, schema, scrollSize, scrollContainTime)
+  override def create(conf: PandaConfig): CustomPropertyNodeStore = {
+    new InElasticSearchPropertyNodeStore(conf.esHost, conf.esPort, conf.esIndex, conf.esType, conf.esSchema, conf.esScrollSize, conf.esScrollTime)
   }
 }
 
@@ -104,11 +92,11 @@ object EsUtil {
       id = doc.get(idName).get.asInstanceOf[Int].toLong
     }
     val labels = ArrayBuffer[String]()
-    if (doc.contains(labelName)) doc.get(labelName).get.asInstanceOf[util.ArrayList[String]].foreach(u => labels += u)
+    if (doc.contains(labelName)) doc.get(labelName).get.asInstanceOf[java.util.ArrayList[String]].foreach(u => labels += u)
     doc.map(field =>
       if (!field._1.equals(idName) && !field._1.equals(labelName) ) {
-        if (field._2.isInstanceOf[util.ArrayList[Object]]) {
-          props(field._1) = getValueFromArray(field._2.asInstanceOf[util.ArrayList[Object]].toArray())
+        if (field._2.isInstanceOf[java.util.ArrayList[Object]]) {
+          props(field._1) = getValueFromArray(field._2.asInstanceOf[java.util.ArrayList[Object]].toArray())
         }
         else props(field._1) = Values.of(field._2)
       }
