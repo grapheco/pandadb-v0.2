@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.v3_5.planner.logical.steps
 
-import cn.pandadb.costore.{ExternalPropertiesContext, CustomPropertyNodeStore}
+import cn.pandadb.costore.ExternalPropertiesContext
 import org.neo4j.cypher.internal.compiler.v3_5.planner.logical.{LogicalPlanningContext, PlanTransformer}
 import org.neo4j.cypher.internal.compiler.v3_5.{IndexHintUnfulfillableNotification, JoinHintUnfulfillableNotification}
 import org.neo4j.cypher.internal.ir.v3_5.PlannerQuery
@@ -54,6 +54,7 @@ object verifyBestPlan extends PlanTransformer {
           val inventedHintsAndThenSolvedThem = solvedInAddition.exists(!expectedHints.contains(_))
           if ( !bypassIndex && (missing.nonEmpty || inventedHintsAndThenSolvedThem)) {
             def out(h: Seq[Hint]) = h.mkString("`", ", ", "`")
+
             val details = if (missing.isEmpty)
               s"""Expected:
                  |${out(expectedHints)}

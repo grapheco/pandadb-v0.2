@@ -240,7 +240,6 @@ public class GraphDatabaseFacadeFactory
         if (pandaConfig.useCoStorage()) {
             try {
                 ExternalPropertyStoreFactory costoreFactory = (ExternalPropertyStoreFactory) Class.forName(pandaConfig.costoreFactory()).newInstance();
-                System.out.println(CustomPropertyNodeStore.class.getName());
                 PandaRuntimeContext.contextPut(CustomPropertyNodeStore.class.getName(), costoreFactory.create(pandaConfig));
             } catch (Exception e) {
                 e.printStackTrace();

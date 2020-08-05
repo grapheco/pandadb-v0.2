@@ -312,6 +312,7 @@ class InElasticSearchPropertyNodeStore(host: String, port: Int, indexName: Strin
   }
 
   private def predicate2EsQuery(expr: NFPredicate): QueryBuilder = {
+    println(expr)
     expr match {
       case expr: NFGreaterThan =>
         val paramValue = expr.value.asInstanceOf[Value].asObject()
