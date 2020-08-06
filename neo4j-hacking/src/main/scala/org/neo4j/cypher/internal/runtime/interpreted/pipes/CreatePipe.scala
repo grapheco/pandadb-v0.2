@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.runtime.interpreted._
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.{LazyLabel, LazyType, Pipe, QueryState}
 import org.neo4j.cypher.internal.runtime.{LenientCreateRelationship, Operations, QueryContext}
 import org.neo4j.function.ThrowingBiConsumer
 import org.neo4j.values.AnyValue

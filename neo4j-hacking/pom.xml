@@ -50,7 +50,16 @@
             <groupId>com.alipay.sofa</groupId>
             <artifactId>jraft-core</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <version>6.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>7.5.0</version>
+        </dependency>
     </dependencies>
 
 </project>

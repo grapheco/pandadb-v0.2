@@ -67,7 +67,6 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
     if (needCoStoreSaveOpeartions) {
       costoreTx = PandaRuntimeContext.contextGet[CustomPropertyNodeStore]().beginWriteTransaction()
     }
-
   }
 
   def nodeCreate(nodeId: Long): Unit = {
@@ -84,6 +83,9 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
   def nodeCreateWithLabels(nodeId: Long, labels: Array[Int]): Unit = {
     if (this.needJraftSaveOperations || this.needCoStoreSaveOpeartions) {
       val labelNames: Array[String] = new Array[String](labels.size)
+
+      if (this.needCoStoreSaveOpeartions) this.costoreTx.addNode(nodeId)
+
       for (i <- 0 to labels.size-1) {
         val labelName = getNodeLabelName(labels(i))
         labelNames(i) = labelName
