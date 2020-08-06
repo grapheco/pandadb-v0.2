@@ -154,4 +154,22 @@ class PandaCostoreTest {
     testQuery("match (n:Person) WHERE n.age IN [40, 10] return count(n)", "count(n)", "4")
   }
 
+  @Test
+  def basicTypeCheck(): Unit = {
+    db.execute("CREATE (n:Person {salary: 40.5, name: 'blue', isLeader: true, address: 'CNIC, CAS, Beijing, China'})")
+        testQuery("match (n:Person) WHERE n.isLeader AND n.salary = 40.5 return count(n)", "count(n)", "1")
+  }
+
+  @Test
+  def pointTypeCheck(): Unit = {
+    db.execute("CREATE (n:Person {loc: point({ x:3, y:4 }), salary: 40.5, name: 'blue', isLeader: true, address: 'CNIC, CAS, Beijing, China'})")
+    testQuery("match (n:Person) WHERE n.loc.x = 3 AND n.salary = 40.5 return count(n)", "count(n)", "1")
+  }
+
+  @Test
+  def dateTypeCheck(): Unit = {
+    db.execute("CREATE (n:Person {birthday: datetime('1975-06-24T12:50:35.556+0100'), salary: 40.5, name: 'blue', isLeader: true, address: 'CNIC, CAS, Beijing, China'})")
+    testQuery("match (n:Person) WHERE n.birthday = datetime('1975-06-24T12:50:35.556+0100') AND n.salary = 40.5 return count(n)", "count(n)", "1")
+  }
+
 }

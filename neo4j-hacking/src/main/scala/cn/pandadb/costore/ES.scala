@@ -258,7 +258,6 @@ object EsUtil {
     private var searchHits: Array[SearchHit] = searchResponse.getHits.getHits
     private var lastHitsSize = searchHits.size
     private var hitsIterator = searchHits.toIterator
-    println(s"es hist: ${lastHitsSize} for query ${queryBuilder}")
 
     private def doScroll(): Boolean = {
       if (lastHitsSize > 0) {
