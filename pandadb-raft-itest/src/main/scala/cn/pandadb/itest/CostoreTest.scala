@@ -19,18 +19,15 @@ import org.neo4j.io.fs.FileUtils
 class PandaCostoreTest {
 
   var db: GraphDatabaseService = null
-  var neo4jServer: CommunityBootstrapper = null
-  neo4jServer = new CommunityBootstrapper
   val confFile: File = new File("testinput/test-costore.conf")
-  neo4jServer.start(Paths.get("testoutput", "testdb").toFile(), Optional.of(confFile), new util.HashMap[String, String])
+  val dbFile: File = new File("testoutput/testdb")
+  FileUtils.deleteRecursively(dbFile);
+  dbFile.mkdirs();
+  db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbFile).loadPropertiesFromFile(confFile.getPath).newGraphDatabase()
   println(PandaRuntimeContext.contextGet[PandaConfig]())
   val esNodeStore: InElasticSearchPropertyNodeStore = PandaRuntimeContext.contextGet[CustomPropertyNodeStore]().asInstanceOf[InElasticSearchPropertyNodeStore]
   esNodeStore.clearAll()
   ExternalPropertiesContext.bindCustomPropertyNodeStore(esNodeStore)
-  val dbFile: File = new File("testoutput/testdb")
-  FileUtils.deleteRecursively(dbFile);
-  dbFile.mkdirs();
-  db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbFile).newGraphDatabase()
   db.execute("CREATE (n:Person {age: 10, name: 'bob', address: 'CNIC, CAS, Beijing, China'})")
   db.execute("CREATE (n:Person {age: 10, name: 'bob2', address: 'CNIC, CAS, Beijing, China'})")
   db.execute("CREATE (n:Person {age: 40, name: 'alex', address: 'CNIC, CAS, Beijing, China'})")
@@ -45,7 +42,6 @@ class PandaCostoreTest {
   @After
   def shutdownDB(): Unit = {
     db.shutdown()
-    neo4jServer.stop()
   }
 
   def testQuery(query: String, resultKey: String, requiredValue: String = "0"): Unit = {
