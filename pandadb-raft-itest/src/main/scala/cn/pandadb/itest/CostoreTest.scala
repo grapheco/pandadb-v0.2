@@ -5,17 +5,14 @@ import java.util
 import java.util.Optional
 
 import cn.pandadb.config.PandaConfig
-import cn.pandadb.costore.{ExternalPropertiesContext, InElasticSearchPropertyNodeStore}
-import cn.pandadb.jraft.PandaJraftServer
+import cn.pandadb.costore.InElasticSearchPropertyNodeStore
 import cn.pandadb.server.PandaRuntimeContext
 import org.neo4j.graphdb.factory.GraphDatabaseFactory
 import org.neo4j.server.CommunityBootstrapper
-import cn.pandadb.jraft.PandaJraftService
-import java.io.{File, FileInputStream}
-import java.util.Properties
+import java.io.File
 
 import cn.pandadb.costore.{CustomPropertyNodeStore, ExternalPropertiesContext}
-import org.junit.{After, AfterClass, Before, BeforeClass, Test}
+import org.junit.{After, Before, Test}
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.io.fs.FileUtils
 
@@ -23,30 +20,27 @@ class PandaCostoreTest {
 
   var db: GraphDatabaseService = null
   var neo4jServer: CommunityBootstrapper = null
-
-  @Before
-  def initDB(): Unit = {
-    neo4jServer = new CommunityBootstrapper
-    val confFile: File = new File("testinput/test-costore.conf")
-    neo4jServer.start(Paths.get("testoutput", "testdb").toFile(), Optional.of(confFile), new util.HashMap[String, String])
-    println(PandaRuntimeContext.contextGet[PandaConfig]())
-    val esNodeStore: InElasticSearchPropertyNodeStore = PandaRuntimeContext.contextGet[CustomPropertyNodeStore]().asInstanceOf[InElasticSearchPropertyNodeStore]
-    esNodeStore.clearAll()
-    ExternalPropertiesContext.bindCustomPropertyNodeStore(esNodeStore)
-    val dbFile: File = new File("testoutput/testdb")
-    FileUtils.deleteRecursively(dbFile);
-    dbFile.mkdirs();
-    db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbFile).newGraphDatabase()
-    db.execute("CREATE (n:Person {age: 10, name: 'bob', address: 'CNIC, CAS, Beijing, China'})")
-    db.execute("CREATE (n:Person {age: 10, name: 'bob2', address: 'CNIC, CAS, Beijing, China'})")
-    db.execute("CREATE (n:Person {age: 40, name: 'alex', address: 'CNIC, CAS, Beijing, China'})")
-    db.execute("CREATE (n:Person {age: 40, name: 'alex2', address: 'CNIC, CAS, Beijing, China'})")
-    db.execute("CREATE INDEX ON :Person(address)")
-    db.execute("CREATE INDEX ON :Person(name)")
-    db.execute("CREATE INDEX ON :Person(age)")
-    db.execute("CREATE INDEX ON :Person(name, age)")
-    db.execute("match (f:Person), (s:Person) where f.age=40 AND s.age=10 CREATE (f)-[hood:Father]->(s)")
-  }
+  neo4jServer = new CommunityBootstrapper
+  val confFile: File = new File("testinput/test-costore.conf")
+  neo4jServer.start(Paths.get("testoutput", "testdb").toFile(), Optional.of(confFile), new util.HashMap[String, String])
+  println(PandaRuntimeContext.contextGet[PandaConfig]())
+  val esNodeStore: InElasticSearchPropertyNodeStore = PandaRuntimeContext.contextGet[CustomPropertyNodeStore]().asInstanceOf[InElasticSearchPropertyNodeStore]
+  esNodeStore.clearAll()
+  ExternalPropertiesContext.bindCustomPropertyNodeStore(esNodeStore)
+  val dbFile: File = new File("testoutput/testdb")
+  FileUtils.deleteRecursively(dbFile);
+  dbFile.mkdirs();
+  db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbFile).newGraphDatabase()
+  db.execute("CREATE (n:Person {age: 10, name: 'bob', address: 'CNIC, CAS, Beijing, China'})")
+  db.execute("CREATE (n:Person {age: 10, name: 'bob2', address: 'CNIC, CAS, Beijing, China'})")
+  db.execute("CREATE (n:Person {age: 40, name: 'alex', address: 'CNIC, CAS, Beijing, China'})")
+  db.execute("CREATE (n:Person {age: 40, name: 'alex2', address: 'CNIC, CAS, Beijing, China'})")
+  db.execute("CREATE INDEX ON :Person(address)")
+  db.execute("CREATE INDEX ON :Person(name)")
+  db.execute("CREATE INDEX ON :Person(age)")
+  db.execute("CREATE INDEX ON :Person(name, age)")
+  db.execute("match (f:Person), (s:Person) where f.age=40 AND s.age=10 CREATE (f)-[hood:Father]->(s)")
+  println("=================db inintialized================")
 
   @After
   def shutdownDB(): Unit = {

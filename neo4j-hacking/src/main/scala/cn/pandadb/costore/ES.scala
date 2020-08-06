@@ -5,8 +5,8 @@ import cn.pandadb.costore.{BufferedExternalPropertyWriteTransaction, CustomPrope
 import scala.collection.JavaConversions._
 import scala.collection.{AbstractIterator, mutable}
 import scala.collection.mutable.ArrayBuffer
-import org.neo4j.cypher.internal.runtime.interpreted.{NFLessThan, NFPredicate, _}
 import org.neo4j.values.storable._
+import org.neo4j.cypher.internal.runtime.interpreted._
 import cn.pandadb.costore.util.{Configuration, PandaModuleContext}
 import com.alibaba.fastjson.JSONObject
 import org.apache.http.HttpHost
@@ -258,6 +258,7 @@ object EsUtil {
     private var searchHits: Array[SearchHit] = searchResponse.getHits.getHits
     private var lastHitsSize = searchHits.size
     private var hitsIterator = searchHits.toIterator
+    println(s"es hist: ${lastHitsSize} for query ${queryBuilder}")
 
     private def doScroll(): Boolean = {
       if (lastHitsSize > 0) {
@@ -312,7 +313,6 @@ class InElasticSearchPropertyNodeStore(host: String, port: Int, indexName: Strin
   }
 
   private def predicate2EsQuery(expr: NFPredicate): QueryBuilder = {
-    println(expr)
     expr match {
       case expr: NFGreaterThan =>
         val paramValue = expr.value.asInstanceOf[Value].asObject()
