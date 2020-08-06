@@ -21,4 +21,6 @@ object PandaRuntimeContext {
   def contextGet[T]()(implicit manifest: Manifest[T]): T = contextGet(manifest.runtimeClass.getName);
 
   def contextGetOption[T]()(implicit manifest: Manifest[T]): Option[T] = contextGetOption(manifest.runtimeClass.getName);
+
+  def contextRemove[T](key: String): T = _map.remove(key).getOrElse(null).asInstanceOf[T]
 }

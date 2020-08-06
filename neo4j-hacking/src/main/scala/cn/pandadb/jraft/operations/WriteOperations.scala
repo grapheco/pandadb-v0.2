@@ -1,10 +1,19 @@
 package cn.pandadb.jraft.operations
 
+import java.io.InputStream
 import java.nio.ByteBuffer
+import java.util
+import java.util.Collections.singletonList
+
+import cn.pandadb.server.PandaRuntimeContext
+
+import scala.collection.JavaConversions._
+import org.neo4j.blob.{Blob, BlobEntry, BlobId, InputStreamSource, MimeType}
 
 import scala.collection.mutable.ArrayBuffer
-import org.neo4j.values.storable.{Value}
+import org.neo4j.values.storable.{BlobArray, BlobValue, CoordinateReferenceSystem, PointArray, PointValue, Value}
 import org.neo4j.graphdb.{GraphDatabaseService, Label, RelationshipType}
+import org.neo4j.graphdb.spatial.{CRS, Coordinate, Point}
 
 // scalastyle:off println
 class WriteOperations extends Serializable {
@@ -69,19 +78,74 @@ class WriteOperations extends Serializable {
     ops.append(NodeRemoveLabel(node, label))
   }
   def nodeSetProperty(node: Long, propertyKey: String, value: Value): Unit = {
-    ops.append(NodeSetProperty(node, propertyKey, value.asObjectCopy()))
+    ops.append(NodeSetProperty(node, propertyKey, value))
   }
   def nodeRemoveProperty(node: Long, propertyKey: String): Unit = {
     ops.append(NodeRemoveProperty(node, propertyKey))
   }
   def relationshipSetProperty(relationship: Long, propertyKey: String, value: Value): Unit = {
-    ops.append(RelationshipSetProperty(relationship, propertyKey, value.asObjectCopy()))
+    ops.append(RelationshipSetProperty(relationship, propertyKey, value))
   }
   def relationshipRemoveProperty(relationship: Long, propertyKey: String): Unit = {
     ops.append(RelationshipRemoveProperty(relationship, propertyKey))
   }
   def graphSetProperty(propertyKey: String, value: Value): Unit = {
-    ops.append(GraphSetProperty(propertyKey, value.asObjectCopy()))
+    ops.append(GraphSetProperty(propertyKey, value))
+  }
+
+  def assureDataSerializableBeforeCommit(): Unit = {
+    // assure ops can be serialized
+    ops.foreach(op => op match {
+        case op1: NodeSetProperty => op1.value = convertPropertyValue(op1.value)
+        case op1: RelationshipSetProperty => op1.value = convertPropertyValue(op1.value)
+        case _ => None
+    })
+  }
+
+  class SerialzableBlob(override val id: BlobId,
+                                override val length: Long,
+                                override val mimeType: MimeType,
+                                @transient  override val streamSource: InputStreamSource
+                               ) extends Blob with BlobEntry with Serializable {
+    override def offerStream[T](consume: InputStream => T): T =
+      throw new Exception("offerStream() is not support in SerialzableBlob type.")
+
+  }
+  object SerialzableBlob {
+    def fromBlobEntry(blobEntry: BlobEntry): SerialzableBlob = {
+      new SerialzableBlob(blobEntry.id, blobEntry.length, blobEntry.mimeType, null)
+    }
+  }
+
+  private def convertPropertyValue(value: Any): Object = {
+    value match {
+      case v1: BlobValue =>
+        val blobEntry: BlobEntry = PandaRuntimeContext.contextRemove[BlobEntry](v1.blob.hashCode().toString)
+        if (blobEntry != null) {
+          SerialzableBlob.fromBlobEntry(blobEntry)
+        }
+        else {
+          throw new Exception(s"PandaRuntimeContext cannot find BlobEntry of Blob ${v1.blob}")
+        }
+      case v1: BlobArray => v1.value().map(blob => convertPropertyValue(blob))
+      case v1: PointValue => SerialzablePoint.fromPointValue(v1)
+      case v1: PointArray => v1.asObjectCopy().map(p => convertPropertyValue(p))
+      case v1: Value => v1.asObjectCopy()
+    }
+  }
+
+  class SerialzablePoint(val crsName: String, coordinate: Array[Double]) extends Point with Serializable {
+    override def getCoordinates(): util.List[Coordinate] = singletonList(new Coordinate(coordinate: _*))
+
+    override def getCRS: CRS = {
+      CoordinateReferenceSystem.byName(crsName)
+    }
+  }
+
+  object SerialzablePoint {
+    def fromPointValue(pointValue: PointValue) : SerialzablePoint = {
+      new SerialzablePoint(pointValue.getCRS.asInstanceOf[CoordinateReferenceSystem].getName, pointValue.coordinate())
+    }
   }
 
 }

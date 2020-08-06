@@ -62,9 +62,9 @@ object PandaJraftTest3 {
 object Test4 {
   def main (args: Array[String] ): Unit = {
     val dbFile = new File("./output/testdb")
-    val confFile = new File("testinput/test1.conf")
+    val confFile = new File("testinput/test4.conf")
     //        neo4jServer.start(dbFile, Optional.of(confFile), new HashMap<String,String>());
     val db = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbFile).loadPropertiesFromFile(confFile.getPath).newGraphDatabase
-    db.execute("create (n:person{name:'test2', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>})")
+    db.execute("create (n:person{name:'test2', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
 }
 }

@@ -19,9 +19,9 @@ case class NodeAddLabel(node: Long, nodeLabel: String) extends TxOperation{}
 
 case class NodeRemoveLabel(node: Long, label: String) extends TxOperation{}
 
-case class NodeSetProperty (node: Long, propertyKey: String, value: Object) extends TxOperation{}
+case class NodeSetProperty (node: Long, propertyKey: String, var value: Object) extends TxOperation{}
 case class NodeRemoveProperty (node: Long, propertyKey: String) extends TxOperation{}
-case class RelationshipSetProperty (relationship: Long, propertyKey: String, value: Object) extends TxOperation{}
+case class RelationshipSetProperty (relationship: Long, propertyKey: String, var value: Object) extends TxOperation{}
 case class RelationshipRemoveProperty (relationship: Long, propertyKey: String) extends TxOperation{}
-case class GraphSetProperty (propertyKey: String, value: Object) extends TxOperation{}
+case class GraphSetProperty (propertyKey: String, var value: Object) extends TxOperation{}
 case class GraphRemoveProperty (propertyKey: String) extends TxOperation{}

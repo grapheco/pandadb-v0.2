@@ -153,10 +153,9 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
   }
 
   def commit(): Unit = {
-    println("neo4j tx commit")
-    println(this.writeOperations)
-    println(this.costoreTx)
+    println(s"neo4j tx commit, writeOperations.size: ${writeOperations.size}")
     if (this.needJraftSaveOperations && this.writeOperations != null && this.writeOperations.size>0) {
+      this.writeOperations.assureDataSerializableBeforeCommit()
       PandaRuntimeContext.contextGet[PandaJraftService]().commitWriteOpeartions(this.writeOperations)
     }
     if (this.needCoStoreSaveOpeartions) {
