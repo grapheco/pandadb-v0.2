@@ -177,9 +177,9 @@ class PandaCostoreTest {
   }
 
   @Test
-  def durationTypeCheck(): Unit = {
-    db.execute("CREATE (n:Test {timeTest: duration('P14DT16H12M'), name: 'blue'})")
-    testQuery("match (n:Test) WHERE n.timeTest = duration('P14DT16H12M') AND n.name = 'blue' return count(n)", "count(n)", "1")
+  def ListTypeCheck(): Unit = {
+    db.execute("CREATE (n:Test {check: [1997,2003,2003,2000,1999,2003,1995], name: 'blue'})")
+    testQuery("match (n:Test) WHERE n.check = [1997,2003,2003,2000,1999,2003,1995] AND n.name = 'blue' return count(n)", "count(n)", "1")
   }
 
 }
