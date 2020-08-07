@@ -170,6 +170,16 @@ class PandaCostoreTest {
   def dateTypeCheck(): Unit = {
     db.execute("CREATE (n:Person {birthday: datetime('1975-06-24T12:50:35.556+0100'), salary: 40.5, name: 'blue', isLeader: true, address: 'CNIC, CAS, Beijing, China'})")
     testQuery("match (n:Person) WHERE n.birthday = datetime('1975-06-24T12:50:35.556+0100') AND n.salary = 40.5 return count(n)", "count(n)", "1")
+    db.execute("CREATE (n:Test {timeTest: localtime('12:50:35.556'), name: 'blue'})")
+    testQuery("match (n:Test) WHERE n.timeTest = localtime('12:50:35.556') AND n.name = 'blue' return count(n)", "count(n)", "1")
+    db.execute("CREATE (n:Test {timeTest: time('125035.556+0100'), name: 'blue'})")
+    testQuery("match (n:Test) WHERE n.timeTest = time('125035.556+0100') AND n.name = 'blue' return count(n)", "count(n)", "1")
+  }
+
+  @Test
+  def durationTypeCheck(): Unit = {
+    db.execute("CREATE (n:Test {timeTest: duration('P14DT16H12M'), name: 'blue'})")
+    testQuery("match (n:Test) WHERE n.timeTest = duration('P14DT16H12M') AND n.name = 'blue' return count(n)", "count(n)", "1")
   }
 
 }
