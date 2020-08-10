@@ -9,7 +9,7 @@ object SettingKeys {
   val jraftServerId = "cn.pandadb.jraft.server.id"  // string
   val jraftGroupId = "cn.pandadb.jraft.server.group.id"  // string
   val jraftPeerIds = "cn.pandadb.jraft.server.peers"  // string
-  val useJraft = "cn.pandadb.jraft.use"  // boolean
+  val useJraft = "cn.pandadb.jraft.enabled"  // boolean
   val useCoStorage = "costore.enable"  // boolean
   val costoreFactory = "costore.factory"
   val esHost = "costore.es.host"
