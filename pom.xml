@@ -23,6 +23,7 @@
         <module>neo4j-hacking</module>
         <module>commons</module>
         <module>hbase-blob-storage</module>
+        <module>packaging</module>
     </modules>
 
     <properties>
