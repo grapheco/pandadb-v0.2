@@ -20,7 +20,11 @@ object PandaJraftTest1 {
     val confFile: File = new File("testinput/test1.conf")
 
     val dbFile = Paths.get("/testoutput", "data1").toFile()
+
     neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+
+    println("confile================" + confFile.getPath)
+
     val config = PandaRuntimeContext.contextGet[PandaConfig]()
     if (config.useJraft) {
       while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId==null){
@@ -53,6 +57,32 @@ object PandaJraftTest3 {
     val confFile: File = new File("testinput/test3.conf")
 
     val dbFile = Paths.get("/testoutput", "data3").toFile()
+    neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+
+  }
+
+}
+
+object PandaJraftTest4 {
+
+  def main(args: Array[String]): Unit = {
+    val neo4jServer: CommunityBootstrapper = new CommunityBootstrapper
+    val confFile: File = new File("testinput/test4.conf")
+
+    val dbFile = Paths.get("/testoutput", "data4").toFile()
+    neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+
+  }
+
+}
+
+object PandaJraftTest5 {
+
+  def main(args: Array[String]): Unit = {
+    val neo4jServer: CommunityBootstrapper = new CommunityBootstrapper
+    val confFile: File = new File("testinput/test5.conf")
+
+    val dbFile = Paths.get("/testoutput", "data5").toFile()
     neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
 
   }
