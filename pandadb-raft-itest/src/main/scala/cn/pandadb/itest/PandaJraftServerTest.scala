@@ -20,7 +20,11 @@ object PandaJraftTest1 {
     val confFile: File = new File("testinput/test1.conf")
 
     val dbFile = Paths.get("/testoutput", "data1").toFile()
+
     neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+
+    println("confile================" + confFile.getPath)
+
     val config = PandaRuntimeContext.contextGet[PandaConfig]()
     if (config.useJraft) {
       while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId==null){

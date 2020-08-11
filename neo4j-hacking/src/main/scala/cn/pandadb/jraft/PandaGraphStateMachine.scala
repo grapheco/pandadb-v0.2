@@ -3,8 +3,8 @@ package cn.pandadb.jraft
 import java.io.{File, IOException}
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicLong
-import scala.collection.JavaConversions._
 
+import scala.collection.JavaConversions._
 import com.alipay.remoting.exception.CodecException
 import com.alipay.remoting.serialization.SerializerManager
 import com.alipay.sofa.jraft.{Closure, Status, Iterator => SofaIterator}
@@ -13,9 +13,9 @@ import com.alipay.sofa.jraft.error.{RaftError, RaftException}
 import com.alipay.sofa.jraft.storage.snapshot.{SnapshotReader, SnapshotWriter}
 import com.alipay.sofa.jraft.util.Utils
 import org.slf4j.{Logger, LoggerFactory}
-
 import org.neo4j.graphdb.GraphDatabaseService
 import cn.pandadb.jraft.operations.WriteOperations
+import cn.pandadb.jraft.snapshot.PandaGraphSnapshotFile
 
 
 class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMachineAdapter {
@@ -59,6 +59,20 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   }
 
   override def onSnapshotSave(writer: SnapshotWriter, done: Closure): Unit = {
+    println("snopshot================777777")
+    val snap = new PandaGraphSnapshotFile
+    Utils.runInThread(new Runnable {
+      override def run(): Unit = {
+        var dataPath = writer.getPath.substring(0, 20)
+        dataPath = dataPath.concat("data\\databases\\graph.db\\")
+        val psnapPath = writer.getPath.substring(0, 20).concat("snapshot")
+        //snap.save(dataPath, writer.getPath)
+        snap.save(dataPath, psnapPath)
+        println("snopshot================5555" + writer.getPath)
+        println("snopshot================66666" + dataPath)
+        done.run(Status.OK())
+      }
+    })
 //    val dbFilePath = null
 //    Utils.runInThread(() => {
 //      def foo() = {

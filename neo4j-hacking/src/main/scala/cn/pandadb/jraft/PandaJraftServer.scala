@@ -51,7 +51,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     // 关闭 CLI 服务。
     nodeOptions.setDisableCli(false)
     // 每隔30秒做一次 snapshot
-    nodeOptions.setSnapshotIntervalSecs(30)
+    nodeOptions.setSnapshotIntervalSecs(10)
 
     // 设置状态机到启动参数
     nodeOptions.setFsm(this.fsm)
@@ -61,7 +61,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     // 元信息, 必须
     nodeOptions.setRaftMetaUri(dataPath + File.separator + "raft_meta")
     // snapshot, 可选, 一般都推荐
-//    nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot")
+    nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot")
     // 初始化 raft group 服务框架
     this.raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions, rpcServer)
 
