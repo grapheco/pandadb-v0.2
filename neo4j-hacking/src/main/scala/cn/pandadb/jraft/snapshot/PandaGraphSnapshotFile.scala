@@ -8,6 +8,9 @@ class PandaGraphSnapshotFile {
   def save(dataPath: String, snapshotPath: String): Unit = {
     comUtil.compressToZip(Map("dataPath" -> dataPath), snapshotPath, System.currentTimeMillis().toString + ".zip")
   }
+  def load(fileNamewithPath: String, desPath: String): Unit = {
+    comUtil.decompress(fileNamewithPath, desPath)
+  }
 }
 
 class CompressDbFileUtil {

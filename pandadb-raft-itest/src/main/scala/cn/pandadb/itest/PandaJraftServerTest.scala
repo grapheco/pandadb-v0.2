@@ -63,6 +63,32 @@ object PandaJraftTest3 {
 
 }
 
+object PandaJraftTest4 {
+
+  def main(args: Array[String]): Unit = {
+    val neo4jServer: CommunityBootstrapper = new CommunityBootstrapper
+    val confFile: File = new File("testinput/test4.conf")
+
+    val dbFile = Paths.get("/testoutput", "data4").toFile()
+    neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+
+  }
+
+}
+
+object PandaJraftTest5 {
+
+  def main(args: Array[String]): Unit = {
+    val neo4jServer: CommunityBootstrapper = new CommunityBootstrapper
+    val confFile: File = new File("testinput/test5.conf")
+
+    val dbFile = Paths.get("/testoutput", "data5").toFile()
+    neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+
+  }
+
+}
+
 object Test4 {
   def main (args: Array[String] ): Unit = {
     val dbFile = new File("./output/testdb")

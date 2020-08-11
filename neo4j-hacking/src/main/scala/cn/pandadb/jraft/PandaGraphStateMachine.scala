@@ -66,8 +66,8 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
         var dataPath = writer.getPath.substring(0, 20)
         dataPath = dataPath.concat("data\\databases\\graph.db\\")
         val psnapPath = writer.getPath.substring(0, 20).concat("snapshot")
-        //snap.save(dataPath, writer.getPath)
-        snap.save(dataPath, psnapPath)
+        snap.save(dataPath, writer.getPath)
+        //snap.save(dataPath, psnapPath)
         println("snopshot================5555" + writer.getPath)
         println("snopshot================66666" + dataPath)
         done.run(Status.OK())
@@ -92,6 +92,19 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   }
 
   override def onSnapshotLoad(reader: SnapshotReader): Boolean = {
+    println("============load")
+    println("=============" + reader.getPath)
+    val snap = new PandaGraphSnapshotFile
+    val loadDirectory = new File(reader.getPath)
+    if (loadDirectory.isDirectory) {
+      val files = loadDirectory.listFiles()
+      files.foreach(f => {
+        if (f.getName.endsWith("zip")) snap.load(f.getAbsolutePath, reader.getPath.substring(0, 20).concat("data\\databases\\"))
+      })
+    }
+    else {
+      println("snapshot file not exist")
+    }
 //    if (isLeader) {
 //      LOG.warn("Leader is not supposed to load snapshot")
 //      return false
