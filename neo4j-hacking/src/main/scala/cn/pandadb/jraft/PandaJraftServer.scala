@@ -2,13 +2,15 @@ package cn.pandadb.jraft
 
 import java.io.{File, IOException}
 
+import cn.pandadb.config.PandaConfig
+import cn.pandadb.jraft.rpc.GetBoltRequestProcessor
+import cn.pandadb.server.PandaRuntimeContext
 import com.alipay.sofa.jraft.{Node, RaftGroupService}
 import com.alipay.sofa.jraft.conf.Configuration
 import com.alipay.sofa.jraft.entity.PeerId
 import com.alipay.sofa.jraft.option.NodeOptions
 import com.alipay.sofa.jraft.rpc.{RaftRpcServerFactory, RpcServer}
 import org.apache.commons.io.FileUtils
-
 import org.neo4j.graphdb.GraphDatabaseService
 
 class PandaJraftServer(neo4jDB: GraphDatabaseService,
@@ -32,6 +34,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     FileUtils.forceMkdir(new File(dataPath))
     // 这里让 raft RPC 和业务 RPC 使用同一个 RPC server, 通常也可以分开
     val rpcServer: RpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint)
+    rpcServer.registerProcessor(new GetBoltRequestProcessor(this))
     // 注册业务处理器
     //    val counterService = new CounterServiceImpl(this)
     //    rpcServer.registerProcessor(new GetValueRequestProcessor(counterService))
@@ -68,6 +71,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     // 启动
     this.node = this.raftGroupService.start
     System.out.println("Started counter server at port:" + this.node.getNodeId.getPeerId.getPort)
+
   }
 
   def shutdown(): Unit = {
@@ -76,11 +80,19 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
 
   def getFsm: PandaGraphStateMachine = this.fsm
 
+  //def getPandaJraftService: PandaJraftService = this
+
   def getNode: Node = this.node
 
   def isLeader: Boolean = this.getNode.isLeader
 
   def getRaftGroupService: RaftGroupService = this.raftGroupService
+
+  def getBolt(): String = {
+    println(" server is here ========= get Bolt")
+    val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+    pandaConfig.bolt
+  }
 
   /**
     * Redirect request to new leader

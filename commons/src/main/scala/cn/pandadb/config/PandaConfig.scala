@@ -19,9 +19,11 @@ object SettingKeys {
   val esType = "costore.es.type"
   val esScrollSize = "costore.es.scroll.size"//, "1000").toInt
   val esScrollTime = "costore.es.scroll.time.minutes"//, "10").toInt
+  val bolt = "dbms.connector.http.listen_address"
 }
 
 class PandaConfig(config: Config) {
+  def bolt: String = config.getRaw(SettingKeys.bolt).get()
   def jraftServerId: String = config.getRaw(SettingKeys.jraftServerId).get()
   def jraftGroupId: String = config.getRaw(SettingKeys.jraftGroupId).get()
   def jraftPeerIds: String = config.getRaw(SettingKeys.jraftPeerIds).get()
