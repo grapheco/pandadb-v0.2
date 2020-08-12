@@ -17,6 +17,11 @@
             <artifactId>neo4j-hacking</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>cn.pandadb</groupId>
+            <artifactId>hbase-blob-storage</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
