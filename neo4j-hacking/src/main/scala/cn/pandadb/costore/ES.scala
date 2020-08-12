@@ -1,5 +1,6 @@
 package cn.pandadb.costore
 import cn.pandadb.config.PandaConfig
+import cn.pandadb.costore.EsUtil.neo4jValueToScala
 import cn.pandadb.costore.{BufferedExternalPropertyWriteTransaction, CustomPropertyNodeStore, ExternalPropertyStoreFactory, GroupedOpVisitor, GroupedOps, MutableNodeWithProperties, NodeWithProperties, PropertyWriteTransaction}
 
 import scala.collection.JavaConversions._
@@ -81,6 +82,8 @@ object EsUtil {
       case v: BooleanValue => v.asInstanceOf[BooleanValue].booleanValue()
       case v: BooleanArray =>
         v.asInstanceOf[BooleanArray].iterator().map(v2 => v2.asInstanceOf[BooleanValue].booleanValue()).toArray
+      case v: BlobValue => null
+      case v: BlobArray => null
       case v => v.asObject()
     }
   }
@@ -453,7 +456,7 @@ class InEsGroupedOpVisitor(isCommit: Boolean, esClient: RestHighLevelClient, ind
       builder.field(EsUtil.idName, x.id)
       builder.field(EsUtil.labelName, x.labels.toArray[String])
       x.props.foreach(y => {
-        builder.field(y._1, EsUtil.neo4jValueToScala(y._2))
+        builder.field(y._1, neo4jValueToScala(y._2))
       })
       builder.endObject()
       EsUtil.addData(esClient, indexName, typeName, x.id.toString, builder)
