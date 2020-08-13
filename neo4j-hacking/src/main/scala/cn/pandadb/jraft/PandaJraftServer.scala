@@ -34,7 +34,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     FileUtils.forceMkdir(new File(dataPath))
     // 这里让 raft RPC 和业务 RPC 使用同一个 RPC server, 通常也可以分开
     val rpcServer: RpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint)
-    rpcServer.registerProcessor(new GetBoltRequestProcessor(this))
+    //rpcServer.registerProcessor(new GetBoltRequestProcessor(this))
     // 注册业务处理器
     //    val counterService = new CounterServiceImpl(this)
     //    rpcServer.registerProcessor(new GetValueRequestProcessor(counterService))
@@ -54,7 +54,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     // 关闭 CLI 服务。
     nodeOptions.setDisableCli(false)
     // 每隔30秒做一次 snapshot
-    nodeOptions.setSnapshotIntervalSecs(10)
+    nodeOptions.setSnapshotIntervalSecs(getSnapshotTime())
 
     // 设置状态机到启动参数
     nodeOptions.setFsm(this.fsm)
@@ -64,7 +64,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     // 元信息, 必须
     nodeOptions.setRaftMetaUri(dataPath + File.separator + "raft_meta")
     // snapshot, 可选, 一般都推荐
-    nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot")
+    if (useSnapshot()) nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot")
     // 初始化 raft group 服务框架
     this.raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions, rpcServer)
 
@@ -92,6 +92,16 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     println(" server is here ========= get Bolt")
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
     pandaConfig.bolt
+  }
+
+  def useSnapshot(): Boolean = {
+    val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+    pandaConfig.useSnapshot
+  }
+
+  def getSnapshotTime(): Int = {
+    val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+    pandaConfig.snapshotTime
   }
 
   /**
