@@ -6,12 +6,12 @@ import com.alipay.sofa.jraft.RouteTable
 import org.apache.commons.lang3.NotImplementedException
 import org.neo4j.driver.internal.{AbstractStatementRunner, SessionParameters}
 import org.neo4j.driver.types.TypeSystem
-import org.neo4j.driver.{Driver, Record, Session, Statement, StatementResult, StatementRunner, Transaction, TransactionConfig, Value, Values}
+import org.neo4j.driver.{AuthToken, Driver, Record, Session, Statement, StatementResult, StatementRunner, Transaction, TransactionConfig, Value, Values}
 
 import scala.collection.mutable.ArrayBuffer
 
 
-class PandaTransaction(sessionConfig: SessionParameters, config: TransactionConfig, routeTable: RouteTable, uri: String) extends Transaction {
+class PandaTransaction(authToken: AuthToken, sessionConfig: SessionParameters, config: TransactionConfig, routeTable: RouteTable, uri: String) extends Transaction {
 
   var transactionArray: ArrayBuffer[Transaction] = ArrayBuffer[Transaction]() //save session
   var sessionArray: ArrayBuffer[Session] = ArrayBuffer[Session]() // save transaction
@@ -22,15 +22,12 @@ class PandaTransaction(sessionConfig: SessionParameters, config: TransactionConf
   var readDriver: Driver = _
   var writeDriver: Driver = _
 
-  //rule1 one session ,one transaction
-  //rule2 session closed,transaction does't work
   private def getSession(isWriteStatement: Boolean): Session = {
-    //if (!(this.session==null)) this.session.close()   //session the same with the Transaction can not close
     if (isWriteStatement) {
-      if (this.writeDriver == null) this.writeDriver = SelectNode.getDriver(isWriteStatement, routeTable, uri)
+      if (this.writeDriver == null) this.writeDriver = SelectNode.getDriver(authToken, isWriteStatement, routeTable, uri)
       this.session = this.writeDriver.session()
     } else {
-      if (this.readDriver == null) this.readDriver = SelectNode.getDriver(isWriteStatement, routeTable, uri)
+      if (this.readDriver == null) this.readDriver = SelectNode.getDriver(authToken, isWriteStatement, routeTable, uri)
       this.session = this.readDriver.session()
     }
     this.session
@@ -83,7 +80,7 @@ class PandaTransaction(sessionConfig: SessionParameters, config: TransactionConf
   override def run(statement: Statement): StatementResult = {
     //transanction could not be closed until close function
     val tempState = statement.text().toLowerCase()
-    val isWriteStatement = utils.isWriteStatement(tempState)
+    val isWriteStatement = DriverUtils.isWriteStatement(tempState)
     getTransactionReady(isWriteStatement)
     this.transaction.run(statement)
   }

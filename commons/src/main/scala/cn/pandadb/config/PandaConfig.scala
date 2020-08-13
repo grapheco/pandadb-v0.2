@@ -18,16 +18,12 @@ object SettingKeys {
   val esIndex = "costore.es.index"
   val esType = "costore.es.type"
   val esScrollSize = "costore.es.scroll.size"//, "1000").toInt
-  val esScrollTime = "costore.es.scroll.time.minutes"//, "10").toInt
-  val bolt = "dbms.connector.http.listen_address"
-  val useSnapshot = "cn.pandadb.jraft.snapshot.enable"
-  val snapshotTime = "cn.pandadb.jraft.snapshot.time"
+  val esScrollTime = "costore.es.scroll.time.minutes" //, "10").toInt
+  val bolt = "dbms.connector.bolt.listen_address"
 }
 
 class PandaConfig(config: Config) {
   def bolt: String = config.getRaw(SettingKeys.bolt).get()
-  def useSnapshot: Boolean = config.getRaw(SettingKeys.useSnapshot).get().toBoolean
-  def snapshotTime: Int = config.getRaw(SettingKeys.snapshotTime).get().toInt
   def jraftServerId: String = config.getRaw(SettingKeys.jraftServerId).get()
   def jraftGroupId: String = config.getRaw(SettingKeys.jraftGroupId).get()
   def jraftPeerIds: String = config.getRaw(SettingKeys.jraftPeerIds).get()
