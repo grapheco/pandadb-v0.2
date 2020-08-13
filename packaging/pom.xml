@@ -271,6 +271,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>pandadb-driver</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
 <!--        <dependency>-->
 <!--            <groupId>org.scala-lang</groupId>-->
 <!--            <artifactId>scala-library</artifactId>-->
