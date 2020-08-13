@@ -1,5 +1,5 @@
 **/target/
-**/bin/
+/bin/
 /tp-graph-test/testdb/
 **/.settings/
 store_lock
