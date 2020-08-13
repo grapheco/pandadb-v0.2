@@ -18,8 +18,8 @@ object SettingKeys {
   val esIndex = "costore.es.index"
   val esType = "costore.es.type"
   val esScrollSize = "costore.es.scroll.size"//, "1000").toInt
-  val esScrollTime = "costore.es.scroll.time.minutes"//, "10").toInt
-  val bolt = "dbms.connector.http.listen_address"
+  val esScrollTime = "costore.es.scroll.time.minutes" //, "10").toInt
+  val bolt = "dbms.connector.bolt.listen_address"
 }
 
 class PandaConfig(config: Config) {
