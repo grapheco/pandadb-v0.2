@@ -70,6 +70,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
         //snap.save(dataPath, psnapPath)
         println("snopshot================5555" + writer.getPath)
         println("snopshot================66666" + dataPath)
+        //if (writer.addFile("data"))
         done.run(Status.OK())
       }
     })

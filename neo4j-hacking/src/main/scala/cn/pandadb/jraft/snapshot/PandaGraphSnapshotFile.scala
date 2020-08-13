@@ -3,10 +3,18 @@ package cn.pandadb.jraft.snapshot
 import java.io.{BufferedInputStream, File, FileInputStream, FileOutputStream}
 import java.util.zip.{ZipEntry, ZipInputStream, ZipOutputStream}
 
+import cn.pandadb.config.PandaConfig
+import cn.pandadb.server.PandaRuntimeContext
+import com.alipay.sofa.jraft.entity.PeerId
+
 class PandaGraphSnapshotFile {
   val comUtil = new CompressDbFileUtil
+  val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+  //val bot = pandaConfig.bolt
+  val per = new PeerId()
+  per.parse(pandaConfig.bolt)
   def save(dataPath: String, snapshotPath: String): Unit = {
-    comUtil.compressToZip(Map("dataPath" -> dataPath), snapshotPath, System.currentTimeMillis().toString + ".zip")
+    comUtil.compressToZip(Map("dataPath" -> dataPath), snapshotPath, per.getPort.toString + ".zip")
   }
   def load(fileNamewithPath: String, desPath: String): Unit = {
     comUtil.decompress(fileNamewithPath, desPath)
