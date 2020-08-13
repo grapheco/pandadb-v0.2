@@ -1,0 +1,300 @@
+#!/usr/bin/env bash
+# Copyright (c) 2002-2019 "Pandadb,"
+# Pandadb Sweden AB [http://pandadb.com]
+#
+# This file is part of Pandadb.
+#
+# Pandadb is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+# Callers may provide the following environment variables to customize this script:
+#  * JAVA_HOME
+#  * JAVA_CMD
+#  * PANDADB_HOME
+#  * PANDADB_CONF
+#  * PANDADB_START_WAIT
+
+include(src/main/distribution/bin/pandadb-shared.m4)
+
+setup_arbiter_options() {
+    SHUTDOWN_TIMEOUT="${PANDADB_SHUTDOWN_TIMEOUT:-120}"
+    MIN_ALLOWED_OPEN_FILES=40000
+    MAIN_CLASS="org.neo4j.server.CommunityEntryPoint"
+
+    print_start_message() {
+      # Global default
+      PANDADB_DEFAULT_ADDRESS="${dbms_connectors_default_listen_address:-localhost}"
+
+      if [[ "${dbms_connector_http_enabled:-true}" == "false" ]]; then
+        # Only HTTPS connector enabled
+        # First read deprecated 'address' setting
+        PANDADB_SERVER_ADDRESS="${dbms_connector_https_address:-:7473}"
+        # Overridden by newer 'listen_address' if specified
+        PANDADB_SERVER_ADDRESS="${dbms_connector_https_listen_address:-${PANDADB_SERVER_ADDRESS}}"
+        # If it's only a port we need to add the address (it starts with a colon in that case)
+        case ${PANDADB_SERVER_ADDRESS} in
+          :*)
+            PANDADB_SERVER_ADDRESS="${PANDADB_DEFAULT_ADDRESS}${PANDADB_SERVER_ADDRESS}";;
+        esac
+        # Add protocol
+        PANDADB_SERVER_ADDRESS="https://${PANDADB_SERVER_ADDRESS}"
+      else
+        # HTTP connector enabled - same as https but different settings
+        PANDADB_SERVER_ADDRESS="${dbms_connector_http_address:-:7474}"
+        PANDADB_SERVER_ADDRESS="${dbms_connector_http_listen_address:-${PANDADB_SERVER_ADDRESS}}"
+        case ${PANDADB_SERVER_ADDRESS} in
+          :*)
+            PANDADB_SERVER_ADDRESS="${PANDADB_DEFAULT_ADDRESS}${PANDADB_SERVER_ADDRESS}";;
+        esac
+        PANDADB_SERVER_ADDRESS="http://${PANDADB_SERVER_ADDRESS}"
+      fi
+
+      echo "Started pandadb (pid ${PANDADB_PID}). It is available at ${PANDADB_SERVER_ADDRESS}/"
+
+      if [[ "$(echo "${dbms_mode:-}" | tr [:lower:] [:upper:])" == "HA" ]]; then
+        echo "This HA instance will be operational once it has joined the cluster."
+      else
+        echo "There may be a short delay until the server is ready."
+      fi
+    }
+}
+
+check_status() {
+  if [ -e "${PANDADB_PIDFILE}" ] ; then
+    PANDADB_PID=$(cat "${PANDADB_PIDFILE}")
+    kill -0 "${PANDADB_PID}" 2>/dev/null || unset PANDADB_PID
+  fi
+}
+
+check_limits() {
+  detect_os
+  if [ "${DIST_OS}" != "macosx" ] ; then
+    ALLOWED_OPEN_FILES="$(ulimit -n)"
+
+    if [ "${ALLOWED_OPEN_FILES}" -lt "${MIN_ALLOWED_OPEN_FILES}" ]; then
+      echo "WARNING: Max ${ALLOWED_OPEN_FILES} open files allowed, minimum of ${MIN_ALLOWED_OPEN_FILES} recommended. See the Pandadb manual."
+    fi
+  fi
+}
+
+setup_java_opts() {
+  JAVA_OPTS=("-server" ${JAVA_MEMORY_OPTS_XMS-} ${JAVA_MEMORY_OPTS_XMX-})
+
+  if [[ "${dbms_logs_gc_enabled:-}" = "true" ]]; then
+    if [[ "${JAVA_VERSION}" = "1.8"* ]]; then
+      # JAVA 8 GC logging setup
+      JAVA_OPTS+=("-Xloggc:${PANDADB_LOGS}/gc.log" \
+                  "-XX:+UseGCLogFileRotation" \
+                  "-XX:NumberOfGCLogFiles=${dbms_logs_gc_rotation_keep_number:-5}" \
+                  "-XX:GCLogFileSize=${dbms_logs_gc_rotation_size:-20m}")
+      if [[ -n "${dbms_logs_gc_options:-}" ]]; then
+        JAVA_OPTS+=(${dbms_logs_gc_options}) # unquoted to split on spaces
+      else
+        JAVA_OPTS+=("-XX:+PrintGCDetails" "-XX:+PrintGCDateStamps" "-XX:+PrintGCApplicationStoppedTime" \
+                    "-XX:+PrintPromotionFailure" "-XX:+PrintTenuringDistribution")
+      fi
+    else
+      # JAVA 9 and newer GC logging setup
+      local gc_options
+      if [[ -n "${dbms_logs_gc_options:-}" ]]; then
+        gc_options="${dbms_logs_gc_options}"
+      else
+        gc_options="-Xlog:gc*,safepoint,age*=trace"
+      fi
+      gc_options+=":file=${PANDADB_LOGS}/gc.log::filecount=${dbms_logs_gc_rotation_keep_number:-5},filesize=${dbms_logs_gc_rotation_size:-20m}"
+      JAVA_OPTS+=(${gc_options})
+    fi
+  fi
+
+  if [[ -n "${dbms_jvm_additional:-}" ]]; then
+    JAVA_OPTS+=(${dbms_jvm_additional}) # unquoted to split on spaces
+  fi
+}
+
+assemble_command_line() {
+  retval=("${JAVA_CMD}" "-cp" "${CLASSPATH}" "${JAVA_OPTS[@]}" "-Dfile.encoding=UTF-8" "${MAIN_CLASS}" \
+          "--home-dir=${PANDADB_HOME}" "--config-dir=${PANDADB_CONF}")
+}
+
+do_console() {
+  check_status
+  if [[ "${PANDADB_PID:-}" ]] ; then
+    echo "Pandadb is already running (pid ${PANDADB_PID})."
+    exit 1
+  fi
+
+  echo "Starting Pandadb."
+
+  check_limits
+  build_classpath
+
+  assemble_command_line
+  command_line=("${retval[@]}")
+  exec "${command_line[@]}"
+}
+
+do_start() {
+  check_status
+  if [[ "${PANDADB_PID:-}" ]] ; then
+    echo "Pandadb is already running (pid ${PANDADB_PID})."
+    exit 0
+  fi
+  # check dir for pidfile exists
+  if [[ ! -d $(dirname "${PANDADB_PIDFILE}") ]]; then
+    mkdir -p $(dirname "${PANDADB_PIDFILE}")
+  fi
+
+  echo "Starting Pandadb."
+
+  check_limits
+  build_classpath
+
+  assemble_command_line
+  command_line=("${retval[@]}")
+  nohup "${command_line[@]}" >>"${CONSOLE_LOG}" 2>&1 &
+  echo "$!" >"${PANDADB_PIDFILE}"
+
+  : "${PANDADB_START_WAIT:=5}"
+  end="$((SECONDS+PANDADB_START_WAIT))"
+  while true; do
+    check_status
+
+    if [[ "${PANDADB_PID:-}" ]]; then
+      break
+    fi
+
+    if [[ "${SECONDS}" -ge "${end}" ]]; then
+      echo "Unable to start. See ${CONSOLE_LOG} for details."
+      rm "${PANDADB_PIDFILE}"
+      return 1
+    fi
+
+    sleep 1
+  done
+
+  print_start_message
+  echo "See ${CONSOLE_LOG} for current status."
+}
+
+do_stop() {
+  check_status
+
+  if [[ ! "${PANDADB_PID:-}" ]] ; then
+    echo "Pandadb not running"
+    [ -e "${PANDADB_PIDFILE}" ] && rm "${PANDADB_PIDFILE}"
+    return 0
+  else
+    echo -n "Stopping Pandadb."
+    end="$((SECONDS+SHUTDOWN_TIMEOUT))"
+    while true; do
+      check_status
+
+      if [[ ! "${PANDADB_PID:-}" ]]; then
+        echo " stopped"
+        [ -e "${PANDADB_PIDFILE}" ] && rm "${PANDADB_PIDFILE}"
+        return 0
+      fi
+
+      kill "${PANDADB_PID}" 2>/dev/null || true
+
+      if [[ "${SECONDS}" -ge "${end}" ]]; then
+        echo " failed to stop"
+        echo "Pandadb (pid ${PANDADB_PID}) took more than ${SHUTDOWN_TIMEOUT} seconds to stop."
+        echo "Please see ${CONSOLE_LOG} for details."
+        return 1
+      fi
+
+      echo -n "."
+      sleep 1
+    done
+  fi
+}
+
+do_status() {
+  check_status
+  if [[ ! "${PANDADB_PID:-}" ]] ; then
+    echo "Pandadb is not running"
+    exit 3
+  else
+    echo "Pandadb is running at pid ${PANDADB_PID}"
+  fi
+}
+
+do_version() {
+  build_classpath
+
+  assemble_command_line
+  command_line=("${retval[@]}" "--version")
+  exec "${command_line[@]}"
+}
+
+setup_java () {
+  check_java
+  setup_java_opts
+  setup_arbiter_options
+}
+
+main() {
+  setup_environment
+  CONSOLE_LOG="${PANDADB_LOGS}/pandadb.log"
+  PANDADB_PIDFILE="${PANDADB_RUN}/pandadb.pid"
+  readonly CONSOLE_LOG PANDADB_PIDFILE
+
+  case "${1:-}" in
+    console)
+      setup_java
+      print_active_database
+      print_configurable_paths
+      do_console
+      ;;
+
+    start)
+      setup_java
+      print_active_database
+      print_configurable_paths
+      do_start
+      ;;
+
+    stop)
+      setup_arbiter_options
+      do_stop
+      ;;
+
+    restart)
+      setup_java
+      do_stop
+      do_start
+      ;;
+
+    status)
+      do_status
+      ;;
+
+    --version|version)
+      setup_java
+      do_version
+      ;;
+
+    help)
+      echo "Usage: ${PROGRAM} { console | start | stop | restart | status | version }"
+      ;;
+
+    *)
+      echo >&2 "Usage: ${PROGRAM} { console | start | stop | restart | status | version }"
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
