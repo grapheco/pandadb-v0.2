@@ -5,16 +5,18 @@ import java.util.Collections
 import java.util.concurrent.{CompletableFuture, CompletionStage}
 import java.util.function.Consumer
 
-import com.alipay.sofa.jraft.{JRaftUtils, RouteTable}
+import com.alipay.sofa.jraft.RouteTable
 import org.apache.commons.lang3.NotImplementedException
 import org.neo4j.driver.async.AsyncSession
 import org.neo4j.driver.internal.{AbstractStatementRunner, SessionParameters}
 import org.neo4j.driver.internal.metrics.{InternalMetricsProvider, MetricsProvider}
-import org.neo4j.driver.internal.types.InternalTypeSystem
 import org.neo4j.driver.internal.util.{Clock, Futures}
 import org.neo4j.driver.reactive.RxSession
 import org.neo4j.driver.types.TypeSystem
-import org.neo4j.driver.{AccessMode, AuthToken, Config, Driver, GraphDatabase, Metrics, Record, Session, SessionParametersTemplate, Statement, StatementResult, Transaction, TransactionConfig, TransactionWork, Value, Values}
+import org.neo4j.driver.{
+  AuthToken, Config, Driver, Metrics, Record, Session, SessionParametersTemplate,
+  Statement, StatementResult, Transaction, TransactionConfig, TransactionWork, Value, Values
+}
 
 object PandaDriver {
   def create(uri: String, authToken: AuthToken, config: Config): Driver = {
@@ -38,7 +40,7 @@ class PandaDriver(uri: String, authToken: AuthToken, config: Config) extends Dri
   }
 
   override def session(): Session = {
-    new PandaSession(defaultSessionConfig, rt, uri);
+    new PandaSession(authToken, defaultSessionConfig, rt, uri);
   }
 
   override def session(consumer: Consumer[SessionParametersTemplate]): Session = {
@@ -92,7 +94,7 @@ class PandaDriver(uri: String, authToken: AuthToken, config: Config) extends Dri
 
 }
 
-class PandaSession(sessionConfig: SessionParameters, routeTable: RouteTable, uri: String) extends Session {
+class PandaSession(authToken: AuthToken, sessionConfig: SessionParameters, routeTable: RouteTable, uri: String) extends Session {
   var session: Session = null
   var readDriver: Driver = null
   var writeDriver: Driver = null
@@ -100,10 +102,10 @@ class PandaSession(sessionConfig: SessionParameters, routeTable: RouteTable, uri
   private def getSession(isWriteStatement: Boolean): Session = {
     if (!(this.session == null)) this.session.close()
     if (isWriteStatement) {
-      if (this.writeDriver == null) this.writeDriver = SelectNode.getDriver(isWriteStatement, routeTable, uri)
+      if (this.writeDriver == null) this.writeDriver = SelectNode.getDriver(authToken, isWriteStatement, routeTable, uri)
       this.session = this.writeDriver.session()
     } else {
-      if (this.readDriver == null) this.readDriver = SelectNode.getDriver(isWriteStatement, routeTable, uri)
+      if (this.readDriver == null) this.readDriver = SelectNode.getDriver(authToken, isWriteStatement, routeTable, uri)
       this.session = this.readDriver.session()
     }
     this.session
@@ -135,7 +137,7 @@ class PandaSession(sessionConfig: SessionParameters, routeTable: RouteTable, uri
 
   override def run(statement: Statement, config: TransactionConfig): StatementResult = {
     val tempState = statement.text().toLowerCase()
-    val isWriteStatement = utils.isWriteStatement(tempState)
+    val isWriteStatement = DriverUtils.isWriteStatement(tempState)
     getSession(isWriteStatement)
     this.session.run(statement, config)
   }
@@ -162,7 +164,7 @@ class PandaSession(sessionConfig: SessionParameters, routeTable: RouteTable, uri
     /*isTransaction = true
     this.config = config
     this.transaction*/
-    new PandaTransaction(sessionConfig, config, routeTable, uri)
+    new PandaTransaction(authToken, sessionConfig, config, routeTable, uri)
   }
 
   override def run(statementTemplate: String, parameters: Value): StatementResult = {

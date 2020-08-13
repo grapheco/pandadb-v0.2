@@ -3,7 +3,7 @@ import org.neo4j.driver.{AuthTokens, GraphDatabase}
 object DriverTest {
   def main(args: Array[String]): Unit = {
     val pandaString2 = s"panda2://127.0.0.1:8082"
-    val driver = GraphDatabase.driver(pandaString2, AuthTokens.basic("", ""))
+    val driver = GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
     val session = driver.session()
     val tx = session.beginTransaction()
     //    tx.run("create (n:BBBBBBB{name:'qqqqq'})")

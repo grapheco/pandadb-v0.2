@@ -1,12 +1,9 @@
 package cn.pandadb.driver
 
-import cn.pandadb.jraft.rpc.GetBoltRequest
-import com.alipay.sofa.jraft.entity.PeerId
 import com.alipay.sofa.jraft.{JRaftUtils, RouteTable}
 import com.alipay.sofa.jraft.option.CliOptions
-import com.alipay.sofa.jraft.rpc.InvokeCallback
 import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl
-import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase}
+import org.neo4j.driver.{AuthToken, Driver, GraphDatabase}
 
 import scala.util.Random
 
@@ -14,6 +11,7 @@ object SelectNode {
   val cliClientService = new CliClientServiceImpl
   cliClientService.init(new CliOptions())
   val groupId = "panda"
+
   private def initJraft(routeTable: RouteTable, uri: String): Unit = {
 
     val conf = JRaftUtils.getConfiguration(uri)
@@ -40,16 +38,15 @@ object SelectNode {
     if (isWriteStatement) getWriteNode(routeTable, uri) else getReadNode(routeTable, uri)
   }
 
-  def getDriver(isWriteStatement: Boolean, routeTable: RouteTable, uuri: String): Driver = {
+  def getDriver(authTokens: AuthToken, isWriteStatement: Boolean, routeTable: RouteTable, uuri: String): Driver = {
     val nn: String = getNode(isWriteStatement, routeTable, uuri)
     val str = nn.split(":")
     val peerIp = str(0) // peer ip
-    val peerPort = str(1) // peer ip
+    val peerPort = str(1) // peer port
     //get bolt port
-    val boltPort = utils.getBoltPort(peerIp, peerPort.toInt)
+    val boltPort = DriverUtils.getBoltPort(peerIp, peerPort.toInt)
     val uri: String = s"bolt://$peerIp:$boltPort"
-
-    GraphDatabase.driver(uri, AuthTokens.basic("neo4j", "neo4j"))
+    GraphDatabase.driver(uri, authTokens)
   }
 }
 

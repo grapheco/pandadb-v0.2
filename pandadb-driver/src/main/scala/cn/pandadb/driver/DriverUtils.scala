@@ -5,9 +5,8 @@ import java.util.Locale
 import cn.pandadb.driver.SelectNode.cliClientService
 import cn.pandadb.jraft.rpc.GetBoltRequest
 import com.alipay.sofa.jraft.entity.PeerId
-import com.alipay.sofa.jraft.rpc.InvokeCallback
 
-object utils {
+object DriverUtils {
 
   def isWriteStatement(cypherStr: String): Boolean = {
     val lowerCypher = cypherStr.toLowerCase(Locale.ROOT)
