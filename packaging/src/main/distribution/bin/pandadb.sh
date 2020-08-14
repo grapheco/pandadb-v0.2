@@ -453,6 +453,7 @@ do_start() {
 
   print_start_message
   echo "See ${CONSOLE_LOG} for current status."
+  wait $(cat "${PANDADB_PIDFILE}")
 }
 
 do_stop() {

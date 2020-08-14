@@ -1,18 +1,32 @@
-version: '3'
-
+version: "3.8"
 services:
+
   costore:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.5.0
     restart: always
     ports:
-      - "8100:9100"
       - "8200:9200"
-      - "8300:9300"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  aipm:
+    image: aipm/web-test
+    restart: always
+    ports:
+      - "8201:8081"
+    command: python3 /home/aipm-web/manage.py runserver 0.0.0.0:8081
 
   pandadb:
     depends_on:
       - costore
-    build: .
+      - aipm
+    image: excelwang/pandadb:0.2-test
     ports:
-      - "7010:7410"
+      - "8074:7410"
+      - "8075:7510"
+      - "8076:7610"
     restart: always
+    command: /usr/share/pandadb-0.2/bin/pandadb.sh start
