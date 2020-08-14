@@ -70,8 +70,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
         //snap.save(dataPath, psnapPath)
         println("snopshot================5555" + writer.getPath)
         println("snopshot================66666" + dataPath)
-        //if (writer.addFile("data"))
-        done.run(Status.OK())
+        if (writer.addFile("backup.zip")) done.run(Status.OK())
       }
     })
 //    val dbFilePath = null
@@ -95,6 +94,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   override def onSnapshotLoad(reader: SnapshotReader): Boolean = {
     println("============load")
     println("=============" + reader.getPath)
+    if (reader.getFileMeta("backup.zip") == null) println("Fail to find data file in" + reader.getPath)
     val snap = new PandaGraphSnapshotFile
     val loadDirectory = new File(reader.getPath)
     if (loadDirectory.isDirectory) {

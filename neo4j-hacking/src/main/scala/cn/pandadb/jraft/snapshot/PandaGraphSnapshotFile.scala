@@ -14,7 +14,7 @@ class PandaGraphSnapshotFile {
   val per = new PeerId()
   per.parse(pandaConfig.bolt)
   def save(dataPath: String, snapshotPath: String): Unit = {
-    comUtil.compressToZip(Map("dataPath" -> dataPath), snapshotPath, per.getPort.toString + ".zip")
+    comUtil.compressToZip(Map("dataPath" -> dataPath), snapshotPath, "backup" + ".zip")
   }
   def load(fileNamewithPath: String, desPath: String): Unit = {
     comUtil.decompress(fileNamewithPath, desPath)
