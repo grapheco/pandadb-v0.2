@@ -34,7 +34,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     FileUtils.forceMkdir(new File(dataPath))
     // 这里让 raft RPC 和业务 RPC 使用同一个 RPC server, 通常也可以分开
     val rpcServer: RpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint)
-    //rpcServer.registerProcessor(new GetBoltRequestProcessor(this))
+    rpcServer.registerProcessor(new GetBoltRequestProcessor(this))
     // 注册业务处理器
     //    val counterService = new CounterServiceImpl(this)
     //    rpcServer.registerProcessor(new GetValueRequestProcessor(counterService))

@@ -13,10 +13,10 @@ import org.neo4j.blob.{Blob, BlobId, InputStreamSource, MimeType}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 
-class HBaseUtils(columnCount: Int = 100) extends Logging {
+class HBaseUtils(columnCount: Int = 1024) extends Logging {
   val colCount: Int = columnCount
-  val colSize: Int = colCount / 10
-  // size of 10
+  val colSize: Int = 2 // cut last 2 bytes as columnName, 2 ^ (8 * 2) > 1024
+
   val columnFamily: Array[Byte] = Bytes.toBytes("BLOB")
 
   val properties = new Properties();

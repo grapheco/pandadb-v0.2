@@ -5,7 +5,6 @@ import com.alipay.sofa.jraft.rpc.{RpcContext, RpcProcessor}
 
 class GetBoltRequestProcessor(pandaJraftServer: PandaJraftServer) extends RpcProcessor[cn.pandadb.jraft.rpc.GetBoltRequest]{
   override def handleRequest(rpcCtx: RpcContext, request: GetBoltRequest): Unit = {
-    println("hello world!!!!!")
     rpcCtx.sendResponse(new BoltValue(pandaJraftServer.getBolt()))
   }
 
