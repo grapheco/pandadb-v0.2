@@ -30,6 +30,7 @@ import org.elasticsearch.index.reindex.{BulkByScrollResponse, DeleteByQueryReque
 import org.elasticsearch.action.support.WriteRequest
 import org.elasticsearch.common.unit.{TimeValue => EsTimeValue}
 import org.elasticsearch.search.{Scroll, SearchHit}
+import scala.util.control.Breaks._
 
 
 class InElasticSearchPropertyNodeStoreFactory extends ExternalPropertyStoreFactory {
@@ -113,18 +114,22 @@ object EsUtil {
   def createClient(host: String, port: Int, indexName: String, typeName: String,
                    schema: String = "http") : RestHighLevelClient = {
     val httpHost = new HttpHost(host, port, schema)
-    val builder = RestClient.builder(httpHost).setRequestConfigCallback(
-      new RestClientBuilder.RequestConfigCallback() {
-        override def customizeRequestConfig(requestConfigBuilder: RequestConfig.Builder): RequestConfig.Builder = {
-          requestConfigBuilder
-            .setConnectTimeout(30000)
-            .setSocketTimeout(60000);
+    val builder = RestClient.builder(httpHost)
+    var client: RestHighLevelClient = null
+    breakable {
+      do {
+        try {
+          client = new RestHighLevelClient(builder)
+          if (!indexExists(client, indexName)) {
+            val res = createIndex(client, indexName, typeName)
+            if (!res) throw new Exception("InElasticSearchPropertyNodeStore: create index failed!")
+          }
+          break
+        } catch {
+          case e: java.net.ConnectException =>
+            Thread.sleep(5000)
         }
-      })
-    val client = new RestHighLevelClient(builder)
-    if (!indexExists(client, indexName)) {
-      val res = createIndex(client, indexName, typeName)
-      if (!res) throw new Exception("InElasticSearchPropertyNodeStore: create index failed!")
+      } while (true)
     }
     client
   }
