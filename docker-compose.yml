@@ -23,10 +23,9 @@ services:
     depends_on:
       - costore
       - aipm
-    image: excelwang/pandadb:0.2-test
+    image: pandadb:0.2
     ports:
       - "8074:7410"
       - "8075:7510"
       - "8076:7610"
     restart: always
-    command: /usr/share/pandadb-0.2/bin/pandadb.sh start
