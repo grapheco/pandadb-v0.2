@@ -84,32 +84,6 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
     _table.delete(_hbaseUtil.buildDelete(id))
     logger.debug(s"deleted blob: ${id.asLiteralString()}");
   }
-
-  override def saveBatch(blobs: Iterable[Blob]): Iterable[BlobId] = {
-    blobs.map(blob => {
-      save(blob)
-    })
-  }
-
-  override def loadBatch(ids: Iterable[BlobId]): Iterable[Option[Blob]] = {
-    ids.map(id => load(id))
-  }
-
-  override def deleteBatch(ids: Iterable[BlobId]): Unit = {
-    ids.foreach { id =>
-      delete(id)
-    }
-  }
-
-  override def iterator(): Iterator[(BlobId, Blob)] = {
-    val rsc: ResultScanner = _table.getScanner(_hbaseUtil.buildScan())
-    var blobs = List[(BlobId, Blob)]()
-    rsc.map(rs => {
-      blobs = blobs ::: _hbaseUtil.buildBlobFromGetResult(rs)
-
-    })
-    blobs.iterator
-  }
 }
 
 

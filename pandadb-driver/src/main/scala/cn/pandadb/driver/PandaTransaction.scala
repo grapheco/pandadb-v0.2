@@ -55,7 +55,16 @@ class PandaTransaction(authToken: AuthToken, sessionConfig: SessionParameters, c
   }
 
   override def close(): Unit = {
-    if (this.transactionArray.nonEmpty) this.transactionArray.foreach(trans => trans.close())
+    if (this.transactionArray.nonEmpty) this.transactionArray.foreach(
+      trans => try {
+        trans.close()
+      } catch {
+        case ex: Exception => {
+          trans.failure()
+          trans.close()
+        }
+      }
+    )
     if (this.sessionArray.nonEmpty) this.sessionArray.foreach(sess => sess.close())
     if (!(this.writeDriver == null)) this.writeDriver.close()
     if (!(this.readDriver == null)) this.readDriver.close()

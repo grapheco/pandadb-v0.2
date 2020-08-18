@@ -62,8 +62,9 @@ object StoreBlobIO extends Logging {
   }
 
   def deleteBlobArrayProperty(ic: ContextMap, blobs: BlobArray): Unit = {
-    ic.get[BlobStorage].deleteBatch(
-      blobs.value().map(_.asInstanceOf[ManagedBlob].id));
+    blobs.value().map(_.asInstanceOf[ManagedBlob].id).foreach(
+      id => ic.get[BlobStorage].delete(id)
+    );
   }
 
   def deleteBlobProperty(ic: ContextMap, primitive: PrimitiveRecord, propRecord: PropertyRecord, block: PropertyBlock): Unit = {
