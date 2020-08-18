@@ -11,7 +11,9 @@ import org.neo4j.cypher.internal.runtime.interpreted._
 import cn.pandadb.costore.util.{Configuration, PandaModuleContext}
 import com.alibaba.fastjson.JSONObject
 import org.apache.http.HttpHost
-import org.elasticsearch.client.{RequestOptions, RestClient, RestHighLevelClient}
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.client.config.RequestConfig.Builder
+import org.elasticsearch.client.{RequestOptions, RestClient, RestClientBuilder, RestHighLevelClient}
 import org.elasticsearch.action.admin.indices.create.{CreateIndexRequest, CreateIndexResponse}
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest
 import org.elasticsearch.action.index.{IndexRequest, IndexResponse}
@@ -28,6 +30,7 @@ import org.elasticsearch.index.reindex.{BulkByScrollResponse, DeleteByQueryReque
 import org.elasticsearch.action.support.WriteRequest
 import org.elasticsearch.common.unit.{TimeValue => EsTimeValue}
 import org.elasticsearch.search.{Scroll, SearchHit}
+import scala.util.control.Breaks._
 
 
 class InElasticSearchPropertyNodeStoreFactory extends ExternalPropertyStoreFactory {
@@ -112,10 +115,21 @@ object EsUtil {
                    schema: String = "http") : RestHighLevelClient = {
     val httpHost = new HttpHost(host, port, schema)
     val builder = RestClient.builder(httpHost)
-    val client = new RestHighLevelClient(builder)
-    if (!indexExists(client, indexName)) {
-      val res = createIndex(client, indexName, typeName)
-      if (!res) throw new Exception("InElasticSearchPropertyNodeStore: create index failed!")
+    var client: RestHighLevelClient = null
+    breakable {
+      do {
+        try {
+          client = new RestHighLevelClient(builder)
+          if (!indexExists(client, indexName)) {
+            val res = createIndex(client, indexName, typeName)
+            if (!res) throw new Exception("InElasticSearchPropertyNodeStore: create index failed!")
+          }
+          break
+        } catch {
+          case e: java.net.ConnectException =>
+            Thread.sleep(5000)
+        }
+      } while (true)
     }
     client
   }

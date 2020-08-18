@@ -430,6 +430,9 @@ do_start() {
 
   assemble_command_line
   command_line=("${retval[@]}")
+  if [[ ! -d $(dirname "${CONSOLE_LOG}") ]]; then
+    mkdir -p $(dirname "${CONSOLE_LOG}")
+  fi
   nohup "${command_line[@]}" >>"${CONSOLE_LOG}" 2>&1 &
   echo "$!" >"${PANDADB_PIDFILE}"
 
