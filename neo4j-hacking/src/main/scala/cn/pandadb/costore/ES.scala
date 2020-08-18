@@ -11,7 +11,9 @@ import org.neo4j.cypher.internal.runtime.interpreted._
 import cn.pandadb.costore.util.{Configuration, PandaModuleContext}
 import com.alibaba.fastjson.JSONObject
 import org.apache.http.HttpHost
-import org.elasticsearch.client.{RequestOptions, RestClient, RestHighLevelClient}
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.client.config.RequestConfig.Builder
+import org.elasticsearch.client.{RequestOptions, RestClient, RestClientBuilder, RestHighLevelClient}
 import org.elasticsearch.action.admin.indices.create.{CreateIndexRequest, CreateIndexResponse}
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest
 import org.elasticsearch.action.index.{IndexRequest, IndexResponse}
@@ -111,7 +113,14 @@ object EsUtil {
   def createClient(host: String, port: Int, indexName: String, typeName: String,
                    schema: String = "http") : RestHighLevelClient = {
     val httpHost = new HttpHost(host, port, schema)
-    val builder = RestClient.builder(httpHost)
+    val builder = RestClient.builder(httpHost).setRequestConfigCallback(
+      new RestClientBuilder.RequestConfigCallback() {
+        override def customizeRequestConfig(requestConfigBuilder: RequestConfig.Builder): RequestConfig.Builder = {
+          requestConfigBuilder
+            .setConnectTimeout(30000)
+            .setSocketTimeout(60000);
+        }
+      })
     val client = new RestHighLevelClient(builder)
     if (!indexExists(client, indexName)) {
       val res = createIndex(client, indexName, typeName)
