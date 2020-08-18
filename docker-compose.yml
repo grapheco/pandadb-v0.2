@@ -19,10 +19,17 @@ services:
       - "8201:8081"
     command: python3 /home/aipm-web/manage.py runserver 0.0.0.0:8081
 
+  blob:
+    image: boostport/hbase-phoenix-all-in-one:2.0.2-5.0.0
+    restart: always
+    ports:
+      - "26010:16010"
+
   pandadb:
     depends_on:
       - costore
       - aipm
+      - blob
     image: pandadb:0.2
     ports:
       - "8074:7410"
