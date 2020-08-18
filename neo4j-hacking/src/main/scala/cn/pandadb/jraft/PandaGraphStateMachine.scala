@@ -59,7 +59,8 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   }
 
   override def onSnapshotSave(writer: SnapshotWriter, done: Closure): Unit = {
-    println("snopshot================777777")
+    LOG.info("onSnapshotSave")
+    //println("snopshot================777777")
     val snap = new PandaGraphSnapshotFile
     Utils.runInThread(new Runnable {
       override def run(): Unit = {
@@ -68,8 +69,8 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
         val psnapPath = writer.getPath.substring(0, 20).concat("snapshot")
         snap.save(dataPath, writer.getPath)
         //snap.save(dataPath, psnapPath)
-        println("snopshot================5555" + writer.getPath)
-        println("snopshot================66666" + dataPath)
+        //println("snopshot================5555" + writer.getPath)
+        //println("snopshot================66666" + dataPath)
         if (writer.addFile("backup.zip")) done.run(Status.OK())
       }
     })
@@ -92,8 +93,9 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   }
 
   override def onSnapshotLoad(reader: SnapshotReader): Boolean = {
-    println("============load")
-    println("=============" + reader.getPath)
+    //println("============load")
+    //println("=============" + reader.getPath)
+    LOG.info("onSnapshotLoad")
     if (reader.getFileMeta("backup.zip") == null) println("Fail to find data file in" + reader.getPath)
     val snap = new PandaGraphSnapshotFile
     val loadDirectory = new File(reader.getPath)
@@ -104,7 +106,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
       })
     }
     else {
-      println("snapshot file not exist")
+      LOG.info("snapshot file not exist")
     }
 //    if (isLeader) {
 //      LOG.warn("Leader is not supposed to load snapshot")
