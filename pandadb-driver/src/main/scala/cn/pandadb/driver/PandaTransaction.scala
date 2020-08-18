@@ -62,6 +62,7 @@ class PandaTransaction(authToken: AuthToken, sessionConfig: SessionParameters, c
         case ex: Exception => {
           trans.failure()
           trans.close()
+          throw ex
         }
       }
     )
