@@ -22,6 +22,7 @@ class DriverTest {
   def createAndDeleteBlobTest(): Unit = {
     val tx = session.beginTransaction()
     val res = tx.run("create (n:aaa{name:'test_blob', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
+
     val blob = res.next().get(0).asEntity().get("blob").asBlob().streamSource
     Assert.assertArrayEquals(
       IOUtils.toByteArray(new URL("https://www.baidu.com/img/flexible/logo/pc/result.png")),
@@ -75,22 +76,32 @@ class DriverTest {
   def relationshipTest(): Unit = {
     val tx = session.beginTransaction()
 
+    //way 1
     tx.run("create (n:band{name:'Wu Tiao Ren', company:'Modern Sky'}) return n")
-    tx.run("create (n:person{name:'仁科', skill:'Accordion, Guitar'})")
+    tx.run("create (n:person{name:'仁科', skill:'Accordion, Guitar', blob:<https://pic1.zhimg.com/v2-b3a20c939f1a8d9e0b01a8f0af0192f5_1440w.jpg>})")
     tx.run("create (n:person{name:'阿茂', skill:'Folk Guitar'})")
     tx.run(
       """match (a:person{name:'仁科'}), (b:person{name:'阿茂'}), (c:band{name:'Wu Tiao Ren'})
-        |merge (a)-[r1:friend]->(b)
-        |merge (b)-[r2:friend]->(a)
-        |merge (a)-[r3:belong]->(c)
-        |merge (b)-[r4:belong]->(c)""".stripMargin)
+        |merge (a)-[r1:friend{name:'test'}]->(b)
+        |merge (b)-[r2:friend{name:'test'}]->(a)
+        |merge (a)-[r3:belong{name:'test'}]->(c)
+        |merge (b)-[r4:belong{name:'test'}]->(c)""".stripMargin)
+    //way 2
+    tx.run(
+      """create (n:person{name:'杜凯'})-[:partner{name:'test'}]->(nn:person{name:'刘恋'})
+        |create (nn)-[:partner{name:'test'}]->(n)
+        |create (n)-[:belong{name:'test'}]->(b:band{name:'MrMiss'})
+        |create (nn)-[:belong{name:'test'}]->(b)""".stripMargin)
 
-    tx.run("create (n:person{name:'杜凯'})-[r:MrMiss]-(n:person{name:'刘恋'})")
+    val re = tx.run("match (n:person{name:'仁科'})-[r]->(nn:person{name:'阿茂'}) return type(r)").next()
+    Assert.assertEquals("friend", re.get(0).asString())
+
+    val re2 = tx.run("match (n:person{name:'刘恋'})-[r]->(nn:band{name:'MrMiss'}) return type(r)").next()
+    Assert.assertEquals("belong", re2.get(0).asString())
 
     tx.success()
     tx.close()
-    session.close()
-    driver.close()
+
   }
 
   @Test
@@ -104,16 +115,6 @@ class DriverTest {
   }
 
   @Test
-  def bugReplay(): Unit = {
-    val tx = session.beginTransaction()
-    tx.run("create (n:person{name:'杜凯'})-[r:MrMiss]-(n:person{name:'刘恋'}) return n")
-    tx.success()
-    tx.close()
-    session.close()
-    driver.close()
-  }
-
-  @Test
   def delete(): Unit = {
     val tx = session.beginTransaction()
     tx.run("match (n) detach delete n")
@@ -123,13 +124,13 @@ class DriverTest {
     driver.close()
   }
 
-  //  @After
-  //  def close(): Unit = {
-  //    val tx = session.beginTransaction()
-  //    tx.run("match (n) detach delete n")
-  //    tx.success()
-  //    tx.close()
-  //    session.close()
-  //    driver.close()
-  //  }
+  @After
+  def close(): Unit = {
+    val tx = session.beginTransaction()
+    tx.run("match (n) detach delete n")
+    tx.success()
+    tx.close()
+    session.close()
+    driver.close()
+  }
 }
