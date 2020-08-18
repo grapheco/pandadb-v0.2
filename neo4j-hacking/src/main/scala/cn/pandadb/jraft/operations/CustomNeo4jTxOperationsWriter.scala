@@ -5,12 +5,12 @@ import cn.pandadb.costore.{CustomPropertyNodeStore, PropertyWriteTransaction}
 
 import scala.collection.JavaConversions._
 import cn.pandadb.jraft.PandaJraftService
-import cn.pandadb.server.PandaRuntimeContext
+import cn.pandadb.server.{Logging, PandaRuntimeContext}
 import org.neo4j.internal.kernel.api.exceptions.{KernelException, LabelNotFoundKernelException, PropertyKeyIdNotFoundKernelException}
 import org.neo4j.values.storable.Value
 import org.neo4j.internal.kernel.api.Token
 
-class CustomNeo4jTxOperationsWriter(token: Token) {
+class CustomNeo4jTxOperationsWriter(token: Token) extends Logging{
   private val config: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
   private var writeOperations: WriteOperations = null
   private var costoreTx: PropertyWriteTransaction = null
@@ -155,7 +155,7 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
   }
 
   def commit(): Unit = {
-    println("neo4j tx commit")
+    logger.info("tx commit")
     if (this.needJraftSaveOperations && this.writeOperations != null && this.writeOperations.size>0) {
       this.writeOperations.assureDataSerializableBeforeCommit()
       PandaRuntimeContext.contextGet[PandaJraftService]().commitWriteOpeartions(this.writeOperations)
@@ -166,6 +166,7 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
   }
 
   def rollback(): Unit = {
+    logger.info("tx rollback")
     if (this.needCoStoreSaveOpeartions) {
       this.costoreTx.rollback()
     }
@@ -175,10 +176,9 @@ class CustomNeo4jTxOperationsWriter(token: Token) {
   }
 
   def close(): Unit = {
+    logger.info("tx close")
     if (this.needCoStoreSaveOpeartions) {
       this.costoreTx.close()
     }
-
-    println("Neo4j Close tx")
   }
 }

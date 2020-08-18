@@ -10,7 +10,6 @@ import com.alipay.sofa.jraft.entity.PeerId
 class PandaGraphSnapshotFile {
   val comUtil = new CompressDbFileUtil
   val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
-  //val bot = pandaConfig.bolt
   val per = new PeerId()
   per.parse(pandaConfig.bolt)
   def save(dataPath: String, snapshotPath: String): Unit = {
@@ -44,7 +43,6 @@ class CompressDbFileUtil {
 
     Stream.continually(zis.getNextEntry).takeWhile(_ != null).foreach {
       file =>
-        println(toLocalPath + file.getName)
         val dir = new File(toLocalPath + file.getName)
         if (!dir.exists()) {
           new File(dir.getParent).mkdirs()

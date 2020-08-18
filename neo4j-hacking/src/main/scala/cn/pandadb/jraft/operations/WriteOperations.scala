@@ -5,7 +5,7 @@ import java.nio.ByteBuffer
 import java.util
 import java.util.Collections.singletonList
 
-import cn.pandadb.server.PandaRuntimeContext
+import cn.pandadb.server.{Logging, PandaRuntimeContext}
 
 import scala.collection.JavaConversions._
 import org.neo4j.blob.{Blob, BlobEntry, BlobId, InputStreamSource, MimeType}
@@ -16,7 +16,7 @@ import org.neo4j.graphdb.{GraphDatabaseService, Label, RelationshipType}
 import org.neo4j.graphdb.spatial.{CRS, Coordinate, Point}
 
 // scalastyle:off println
-class WriteOperations extends Serializable {
+class WriteOperations extends Serializable with Logging{
 
   private val ops: ArrayBuffer[TxOperation] = ArrayBuffer[TxOperation]();
 
@@ -46,7 +46,7 @@ class WriteOperations extends Serializable {
         case op1: RelationshipRemoveProperty => db.getRelationshipById(op1.relationship).removeProperty(op1.propertyKey)
         case op1: GraphSetProperty =>       //todo
         case op1: GraphRemoveProperty => //todo
-        case op1: Any => println("no matched "+op1.getClass)
+        case op1: Any => logger.error(s"no matched class: ${op1.getClass}")
       }
     })
     tx.success()
@@ -102,18 +102,19 @@ class WriteOperations extends Serializable {
     })
   }
 
-  class SerialzableBlob(override val id: BlobId,
-                                override val length: Long,
-                                override val mimeType: MimeType,
-                                @transient  override val streamSource: InputStreamSource
+  class SerializableBlob(override val id: BlobId,
+                         override val length: Long,
+                         override val mimeType: MimeType,
+                         @transient  override val streamSource: InputStreamSource
                                ) extends Blob with BlobEntry with Serializable {
     override def offerStream[T](consume: InputStream => T): T =
       throw new Exception("offerStream() is not support in SerialzableBlob type.")
 
   }
-  object SerialzableBlob {
-    def fromBlobEntry(blobEntry: BlobEntry): SerialzableBlob = {
-      new SerialzableBlob(blobEntry.id, blobEntry.length, blobEntry.mimeType, null)
+
+  object SerializableBlob {
+    def fromBlobEntry(blobEntry: BlobEntry): SerializableBlob = {
+      new SerializableBlob(blobEntry.id, blobEntry.length, blobEntry.mimeType, null)
     }
   }
 
@@ -122,19 +123,19 @@ class WriteOperations extends Serializable {
       case v1: BlobValue =>
         val blobEntry: BlobEntry = PandaRuntimeContext.contextRemove[BlobEntry](v1.blob.hashCode().toString)
         if (blobEntry != null) {
-          SerialzableBlob.fromBlobEntry(blobEntry)
+          SerializableBlob.fromBlobEntry(blobEntry)
         }
         else {
           throw new Exception(s"PandaRuntimeContext cannot find BlobEntry of Blob ${v1.blob}")
         }
       case v1: BlobArray => v1.value().map(blob => convertPropertyValue(blob))
-      case v1: PointValue => SerialzablePoint.fromPointValue(v1)
+      case v1: PointValue => SerializablePoint.fromPointValue(v1)
       case v1: PointArray => v1.asObjectCopy().map(p => convertPropertyValue(p))
       case v1: Value => v1.asObjectCopy()
     }
   }
 
-  class SerialzablePoint(val crsName: String, coordinate: Array[Double]) extends Point with Serializable {
+  class SerializablePoint(val crsName: String, coordinate: Array[Double]) extends Point with Serializable {
     override def getCoordinates(): util.List[Coordinate] = singletonList(new Coordinate(coordinate: _*))
 
     override def getCRS: CRS = {
@@ -142,9 +143,9 @@ class WriteOperations extends Serializable {
     }
   }
 
-  object SerialzablePoint {
-    def fromPointValue(pointValue: PointValue) : SerialzablePoint = {
-      new SerialzablePoint(pointValue.getCRS.asInstanceOf[CoordinateReferenceSystem].getName, pointValue.coordinate())
+  object SerializablePoint {
+    def fromPointValue(pointValue: PointValue) : SerializablePoint = {
+      new SerializablePoint(pointValue.getCRS.asInstanceOf[CoordinateReferenceSystem].getName, pointValue.coordinate())
     }
   }
 

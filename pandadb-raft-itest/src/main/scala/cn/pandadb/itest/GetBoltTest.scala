@@ -40,7 +40,7 @@ class GetBoltTest {
       override def complete(result: Any, err: Throwable): Unit = {
         if (err == null) {
           str = result
-          //println("getBolt: " + result)
+          //println("getNeo4jBoltServerAddress: " + result)
         }
         else err.printStackTrace()
       }

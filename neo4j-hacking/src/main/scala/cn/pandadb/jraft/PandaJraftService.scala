@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import cn.pandadb.config.PandaConfig
 import cn.pandadb.jraft.operations.WriteOperations
-import cn.pandadb.server.PandaRuntimeContext
+import cn.pandadb.server.{Logging, PandaRuntimeContext}
 import com.alipay.remoting.exception.CodecException
 import com.alipay.remoting.serialization.SerializerManager
 import com.alipay.sofa.jraft.Status
@@ -18,7 +18,7 @@ import org.neo4j.kernel.configuration.Config
 import org.neo4j.kernel.lifecycle.Lifecycle
 
 
-class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle  {
+class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle with Logging {
   var jraftServer: PandaJraftServer = null
   val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
 
@@ -54,17 +54,18 @@ class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle  {
     val groupId: String = pandaConfig.jraftGroupId
     val peers: String = pandaConfig.jraftPeerIds
     jraftServer = new PandaJraftServer(neo4jDB, dataPath, groupId, serverId, peers)
-    println("==== jraft server created ====")
+    logger.info("==== jraft server init ====")
   }
 
   override def start(): Unit = {
     jraftServer.start()
-    println("==== jraft server started ====")
+    logger.info("==== jraft server started ====")
   }
 
   override def stop(): Unit = {}
 
   override def shutdown(): Unit = {
     jraftServer.shutdown()
+    logger.info("==== jraft server shutdown ====")
   }
 }

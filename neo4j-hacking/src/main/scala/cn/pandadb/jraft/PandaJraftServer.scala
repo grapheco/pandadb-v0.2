@@ -4,7 +4,7 @@ import java.io.{File, IOException}
 
 import cn.pandadb.config.PandaConfig
 import cn.pandadb.jraft.rpc.GetBoltRequestProcessor
-import cn.pandadb.server.PandaRuntimeContext
+import cn.pandadb.server.{Logging, PandaRuntimeContext}
 import com.alipay.sofa.jraft.{Node, RaftGroupService}
 import com.alipay.sofa.jraft.conf.Configuration
 import com.alipay.sofa.jraft.entity.PeerId
@@ -17,7 +17,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
                        dataPath: String,
                        groupId: String,
                        serverIdStr: String,
-                       initConfStr: String) {
+                       initConfStr: String) extends Logging{
 
   private var raftGroupService: RaftGroupService = null
   private var node: Node = null
@@ -70,7 +70,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
 
     // 启动
     this.node = this.raftGroupService.start
-    System.out.println("Started counter server at port:" + this.node.getNodeId.getPeerId.getPort)
+    logger.info("Started PandaJraftServer at port:" + this.node.getNodeId.getPeerId.getPort)
 
   }
 
@@ -88,8 +88,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
 
   def getRaftGroupService: RaftGroupService = this.raftGroupService
 
-  def getBolt(): String = {
-    println(" server is here ========= get Bolt")
+  def getNeo4jBoltServerAddress(): String = {
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
     pandaConfig.bolt
   }
@@ -104,36 +103,4 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     pandaConfig.snapshotTime
   }
 
-  /**
-    * Redirect request to new leader
-    */
-//  def redirect: ValueResponse = {
-//    val response = new ValueResponse
-//    response.setSuccess(false)
-//    if (this.node != null) {
-//      val leader = this.node.getLeaderId
-//      if (leader != null) response.setRedirect(leader.toString)
-//    }
-//    response
-//  }
-
 }
-
-
-//object PandaJraftServer {
-//  private var instance: PandaJraftServer = null
-//
-//  def apply(neo4jDB: GraphDatabaseService,
-//            dataPath: String,
-//            groupId: String,
-//            serverIdStr: String,
-//            initConfStr: String): PandaJraftServer = {
-//    if (instance == null) {
-//      instance = new PandaJraftServer(neo4jDB, dataPath, groupId, serverIdStr, initConfStr)
-//    }
-//    instance
-//  }
-//
-//  def getInstance(): PandaJraftServer = instance
-//
-//}
