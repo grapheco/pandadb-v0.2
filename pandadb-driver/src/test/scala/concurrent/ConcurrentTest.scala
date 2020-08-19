@@ -2,7 +2,7 @@ package concurrent
 
 import org.junit.Assert
 
-object concurrentTest {
+object ConcurrentTest {
   def main(args: Array[String]): Unit = {
     val d1 = new PandaDriver
     val d2 = new PandaDriver
