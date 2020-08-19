@@ -1,8 +1,10 @@
+import java.io.{File, FileInputStream}
 import java.net.URL
 import java.time.LocalDate
 
 import org.apache.commons.io.IOUtils
 import org.junit.{After, Assert, Before, Test}
+import org.neo4j.blob.Blob
 import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase, Session}
 
 import scala.collection.JavaConverters._
@@ -105,14 +107,78 @@ class DriverTest {
   }
 
   @Test
-  def query(): Unit = {
+  def cypherPlusTest(): Unit = {
     val tx = session.beginTransaction()
-    val res = tx.run("match (n) return n")
-    while (res.hasNext) {
-      val record = res.next().get(0).asEntity()
-      println(record.get("name").asString())
-    }
+    val blob1 = tx.run("return <https://www.baidu.com/img/flexible/logo/pc/result.png> as r").next().get("r").asBlob()
+
+    Assert.assertArrayEquals(IOUtils.toByteArray(new URL("https://www.baidu.com/img/flexible/logo/pc/result.png")),
+      blob1.offerStream {
+        IOUtils.toByteArray(_)
+      })
+
+    Assert.assertTrue(blob1.length > 0)
+
+    val basedir = new File("../hbase-blob-storage/testinput/ai").getCanonicalFile.getAbsolutePath
+    val blob2 = tx.run(s"return <file://${basedir}/bluejoe1.jpg> as r").next().get("r").asBlob()
+    Assert.assertArrayEquals(IOUtils.toByteArray(new FileInputStream(new File(basedir, "bluejoe1.jpg"))),
+      blob2.offerStream {
+        IOUtils.toByteArray(_)
+      })
+
+    Assert.assertTrue(blob2.length > 0)
+
+    Assert.assertEquals(true, tx.run("return Blob.empty() ~:0.5 Blob.empty() as r").next().get("r").asBoolean());
+    Assert.assertEquals(true, tx.run("return Blob.empty() ~:0.5 Blob.empty() as r").next().get("r").asBoolean());
+    Assert.assertEquals(true, tx.run("return Blob.empty() ~:1.0 Blob.empty() as r").next().get("r").asBoolean());
+    Assert.assertEquals(true, tx.run("return Blob.empty() ~: Blob.empty() as r").next().get("r").asBoolean());
+
+    Assert.assertEquals(true, tx.run(
+      s"return <file://${basedir}/bluejoe1.jpg> ~: <file://${basedir}/bluejoe2.jpg> as r")
+      .next().get("r").asBoolean());
+
+    Assert.assertTrue(tx.run("return '翟天临' :: '天临 翟' as r").next().get("r").asDouble() > 0.7);
+    Assert.assertTrue(tx.run("return '翟天临' :: '天临 翟' as r").next().get("r").asDouble() < 0.8);
+    Assert.assertTrue(tx.run("return '翟天临' ::jaro '天临 翟' as r").next().get("r").asDouble() > 0.7);
+    Assert.assertEquals(true, tx.run("return '翟天临' ~: '天临 翟' as r").next().get("r").asBoolean());
+    Assert.assertEquals(true, tx.run("return '翟天临' ~:jaro/0.7 '天临 翟' as r").next().get("r").asBoolean());
+    Assert.assertEquals(false, tx.run("return '翟天临' ~:jaro/0.8 '天临 翟' as r").next().get("r").asBoolean());
+
+    Assert.assertEquals(new File(basedir, "bluejoe1.jpg").length(),
+      tx.run(s"return <file://${basedir}/bluejoe1.jpg> ->length as x")
+        .next().get("x").asLong());
+
+    Assert.assertEquals("image/jpeg", tx.run(s"return <file://${basedir}/bluejoe1.jpg>->mime as x")
+      .next().get("x").asString());
+
+    Assert.assertEquals(3968, tx.run(s"return <file://${basedir}/bluejoe1.jpg>->width as x")
+      .next().get("x").asInt());
+
+    Assert.assertEquals(2976, tx.run(s"return <file://${basedir}/bluejoe1.jpg>->height as x")
+      .next().get("x").asInt());
+
+    tx.success()
+    tx.close()
   }
+
+  //  @Test
+  //  def bugReplay(): Unit ={
+  //    val tx = session.beginTransaction()
+  //    Assert.assertEquals(1.toLong, tx.run("return 1 :: 2 as r").next().get("r"))
+  //    tx.success()
+  //    tx.close()
+  //  }
+
+  //  @Test
+  //  def query(): Unit = {
+  //    val tx = session.beginTransaction()
+  //    val res = tx.run("match (n) return n")
+  //    while (res.hasNext) {
+  //      val record = res.next().get(0).asEntity()
+  //      println(record.get("name").asString())
+  //    }
+  //    tx.success()
+  //    tx.close()
+  //  }
 
   @Test
   def delete(): Unit = {
@@ -124,13 +190,13 @@ class DriverTest {
     driver.close()
   }
 
-  @After
-  def close(): Unit = {
-    val tx = session.beginTransaction()
-    tx.run("match (n) detach delete n")
-    tx.success()
-    tx.close()
-    session.close()
-    driver.close()
-  }
+  //  @After
+  //  def close(): Unit = {
+  //    val tx = session.beginTransaction()
+  //    tx.run("match (n) detach delete n")
+  //    tx.success()
+  //    tx.close()
+  //    session.close()
+  //    driver.close()
+  //  }
 }
