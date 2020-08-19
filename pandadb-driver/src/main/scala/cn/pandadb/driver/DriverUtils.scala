@@ -24,10 +24,9 @@ object DriverUtils {
     val request = new GetNeo4jBoltAddressRequest
     val client = cliClientService.getRpcClient
     val peer = new PeerId(peerIp, peerPort.toInt)
-    var boltPort: Any = null
     val res = client.invokeSync(peer.getEndpoint, request, 5000)
-    boltPort = res.toString
-    val port = boltPort.toString.split(":")(1)
+    val boltPort = res.toString
+    val port = boltPort.toString.split(":")(1).split("}")(0)
     port
   }
 }
