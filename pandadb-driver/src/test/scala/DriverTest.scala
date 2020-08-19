@@ -190,13 +190,13 @@ class DriverTest {
     driver.close()
   }
 
-  //  @After
-  //  def close(): Unit = {
-  //    val tx = session.beginTransaction()
-  //    tx.run("match (n) detach delete n")
-  //    tx.success()
-  //    tx.close()
-  //    session.close()
-  //    driver.close()
-  //  }
+  @After
+  def close(): Unit = {
+    val tx = session.beginTransaction()
+    tx.run("match (n) detach delete n")
+    tx.success()
+    tx.close()
+    session.close()
+    driver.close()
+  }
 }
