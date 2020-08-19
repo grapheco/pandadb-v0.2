@@ -3,7 +3,7 @@ package cn.pandadb.jraft
 import java.io.{File, IOException}
 
 import cn.pandadb.config.PandaConfig
-import cn.pandadb.jraft.rpc.GetBoltRequestProcessor
+import cn.pandadb.jraft.rpc.GetNeo4jBoltAddressRequestProcessor
 import cn.pandadb.server.{Logging, PandaRuntimeContext}
 import com.alipay.sofa.jraft.{Node, RaftGroupService}
 import com.alipay.sofa.jraft.conf.Configuration
@@ -23,52 +23,45 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
   private var node: Node = null
   private var fsm: PandaGraphStateMachine = null
 
-  // 解析参数
+  // parse args
   val serverId: PeerId = new PeerId()
   if (!serverId.parse(serverIdStr)) throw new IllegalArgumentException("Fail to parse serverId:" + serverIdStr)
   val initConf = new Configuration()
   if (!initConf.parse(initConfStr)) throw new IllegalArgumentException("Fail to parse initConf:" + initConfStr)
 
   def start(): Unit = {
-    // 初始化路径
+    // init file directory
     FileUtils.forceMkdir(new File(dataPath))
-    // 这里让 raft RPC 和业务 RPC 使用同一个 RPC server, 通常也可以分开
+
+    // add business RPC service
+    // (Here, the raft RPC and the business RPC use the same RPC server)
     val rpcServer: RpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint)
-    rpcServer.registerProcessor(new GetBoltRequestProcessor(this))
-    // 注册业务处理器
-    //    val counterService = new CounterServiceImpl(this)
-    //    rpcServer.registerProcessor(new GetValueRequestProcessor(counterService))
-    //    rpcServer.registerProcessor(new IncrementAndGetRequestProcessor(counterService))
-    // 初始化状态机
+    // add business RPC processor
+    rpcServer.registerProcessor(new GetNeo4jBoltAddressRequestProcessor(this))
+    // init state machine
     this.fsm = new PandaGraphStateMachine(neo4jDB)
 
-    // 设置NodeOption
-      val nodeOptions = new NodeOptions
-
-    // 设置初始集群配置
+    // set NodeOption
+    val nodeOptions = new NodeOptions
+    // init configuration
     nodeOptions.setInitialConf(initConf)
-
-    // 为了测试,调整 snapshot 间隔等参数
-    // 设置选举超时时间为 1 秒
+    // set leader election timeout
     nodeOptions.setElectionTimeoutMs(5000)
-    // 关闭 CLI 服务。
+    // dialbel CLI
     nodeOptions.setDisableCli(false)
-    // 每隔30秒做一次 snapshot
+    // set snapshot save period
     nodeOptions.setSnapshotIntervalSecs(getSnapshotTime())
-
-    // 设置状态机到启动参数
+    // set state machine args
     nodeOptions.setFsm(this.fsm)
-    // 设置存储路径
-    // 日志, 必须
+    // set log save path (required)
     nodeOptions.setLogUri(dataPath + File.separator + "log")
-    // 元信息, 必须
+    // set meta save path (required)
     nodeOptions.setRaftMetaUri(dataPath + File.separator + "raft_meta")
-    // snapshot, 可选, 一般都推荐
+    // set snapshot save path (Optional)
     if (useSnapshot()) nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot")
-    // 初始化 raft group 服务框架
+    // init raft group
     this.raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions, rpcServer)
 
-    // 启动
     this.node = this.raftGroupService.start
     logger.info("Started PandaJraftServer at port:" + this.node.getNodeId.getPeerId.getPort)
 

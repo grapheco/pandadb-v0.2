@@ -3,7 +3,7 @@ package cn.pandadb.driver
 import java.util.Locale
 
 import cn.pandadb.driver.SelectNode.cliClientService
-import cn.pandadb.jraft.rpc.GetBoltRequest
+import cn.pandadb.jraft.rpc.GetNeo4jBoltAddressRequest
 import com.alipay.sofa.jraft.entity.PeerId
 
 object DriverUtils {
@@ -21,7 +21,7 @@ object DriverUtils {
   }
 
   def getBoltPort(peerIp: String, peerPort: Int): String = {
-    val request = new GetBoltRequest
+    val request = new GetNeo4jBoltAddressRequest
     val client = cliClientService.getRpcClient
     val peer = new PeerId(peerIp, peerPort.toInt)
     var boltPort: Any = null

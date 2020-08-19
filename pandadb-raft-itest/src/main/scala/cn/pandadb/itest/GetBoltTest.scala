@@ -1,6 +1,6 @@
 package cn.pandadb.itest
 
-import cn.pandadb.jraft.rpc.{BoltValue, GetBoltRequest}
+import cn.pandadb.jraft.rpc.{Neo4jBoltAddressValue, GetNeo4jBoltAddressRequest}
 import com.alipay.sofa.jraft.RouteTable
 import com.alipay.sofa.jraft.conf.Configuration
 import com.alipay.sofa.jraft.entity.PeerId
@@ -29,7 +29,7 @@ class GetBoltTest {
 
   @Test
   def getBoltTest(): Unit = {
-    val request = new GetBoltRequest
+    val request = new GetNeo4jBoltAddressRequest
     val client = cli.getRpcClient
     //val peer = new PeerId()
     //peer.parse("localhost:8085")
