@@ -21,7 +21,7 @@ class DriverTest {
   }
 
   @Test
-  def createAndDeleteBlobTest(): Unit = {
+  def createBlobTest(): Unit = {
     val tx = session.beginTransaction()
     val res = tx.run("create (n:aaa{name:'test_blob', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
 
@@ -31,11 +31,22 @@ class DriverTest {
       blob.offerStream(IOUtils.toByteArray(_))
     )
 
-    val res2 = tx.run("match (n:aaa) where n.name='test_blob' remove n.blob return n").next().get(0).asEntity()
-    Assert.assertEquals(false, res2.containsKey("blob"))
-
     tx.success()
     tx.close()
+  }
+
+  @Test
+  def deleteBlobTest(): Unit = {
+    val tx = session.beginTransaction()
+    tx.run("create (n:delete_blob{name:'test_blob', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
+    tx.success()
+    tx.close()
+
+    val tx2 = session.beginTransaction()
+    val res2 = tx2.run("match (n:delete_blob) where n.name='test_blob' remove n.blob return n").next().get(0).asEntity()
+    Assert.assertEquals(false, res2.containsKey("blob"))
+    tx2.success()
+    tx2.close()
   }
 
   @Test
@@ -45,7 +56,7 @@ class DriverTest {
 
     Assert.assertEquals("test2", record.get("name").asString())
     Assert.assertEquals(100, record.get("age").asInt())
-    assert(record.get("money").asFloat() == 1.5)
+    Assert.assertTrue(record.get("money").asFloat() == 1.5)
     Assert.assertEquals(LocalDate.parse("2020-06-06"), record.get("date").asLocalDate())
     Assert.assertEquals(true, record.get("isBoy").asBoolean())
     Assert.assertEquals(List("a", "b").asJava, record.get("lst").asList())
@@ -180,15 +191,15 @@ class DriverTest {
   //    tx.close()
   //  }
 
-  //  @Test
-  //  def delete(): Unit = {
-  //    val tx = session.beginTransaction()
-  //    tx.run("match (n) detach delete n")
-  //    tx.success()
-  //    tx.close()
-  //    session.close()
-  //    driver.close()
-  //  }
+  //    @Test
+  //    def delete(): Unit = {
+  //      val tx = session.beginTransaction()
+  //      tx.run("match (n) detach delete n")
+  //      tx.success()
+  //      tx.close()
+  //      session.close()
+  //      driver.close()
+  //    }
 
   @After
   def close(): Unit = {

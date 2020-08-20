@@ -8,7 +8,7 @@ class PandaDriver {
   val pandaString2 = s"panda2://127.0.0.1:8081"
   val driver = GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
 
-  def testMethod(times: Int): Unit = {
+  def createNode(times: Int): Unit = {
     val tx = driver.session().beginTransaction()
     for (i <- 1 to times) {
       val r = Random.nextInt(1000000).toString
