@@ -33,26 +33,17 @@
             <id>server-jar</id>
             <build>
             <!-- Define project structure -->
-            <resources>
-                <resource>
-                    <directory>src/main/resources</directory>
-                </resource>
-                <resource>
-                    <directory>${basedir}/src/main/resources/META-INF/</directory>
-                    <targetPath>META-INF</targetPath>
-                </resource>
-                <resource>
-                    <directory>${basedir}</directory>
-                    <targetPath>META-INF</targetPath>
-                </resource>
-            </resources>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-shade-plugin</artifactId>
                         <configuration>
                             <finalName>pandadb-server-all-in-one-${pandadb.version}</finalName>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -92,7 +83,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
         </build>
 
@@ -108,41 +98,28 @@
                 <artifactId>hbase-blob-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>pandadb</groupId>
-                <artifactId>database</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
-            </dependency>
         </dependencies>
 
         </profile>
 
         <profile>
-            <id>server-tar</id>
+            <id>server-unix-dist</id>
             <build>
                 <!-- Define project structure -->
-                <resources>
-                    <resource>
-                        <directory>src/main/resources</directory>
-                    </resource>
-                    <resource>
-                        <directory>${basedir}/src/main/resources/META-INF/</directory>
-                        <targetPath>META-INF</targetPath>
-                    </resource>
-                    <resource>
-                        <directory>${basedir}</directory>
-                        <targetPath>META-INF</targetPath>
-                    </resource>
-                </resources>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-shade-plugin</artifactId>
+                        <version>3.2.1</version>
                         <configuration>
                             <finalName>pandadb-server-all-in-one-${pandadb.version}</finalName>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -150,6 +127,7 @@
                                         <exclude>META-INF/*.SF</exclude>
                                         <exclude>META-INF/*.DSA</exclude>
                                         <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>cypher-shell.jar</exclude>
                                     </excludes>
                                 </filter>
                             </filters>
@@ -161,7 +139,7 @@
                                     <goal>shade</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/unix/lib</outputDirectory>
                                     <transformers>
                                         <transformer
                                                 implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
@@ -186,27 +164,17 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <attach>false</attach>
-                            <finalName>pandadb-${pandadb.version}</finalName>
-                            <appendAssemblyId>true</appendAssemblyId>
-                            <outputDirectory>${project.build.directory}</outputDirectory>
-                            <archive>
-                                <manifest>
-                                    <addClasspath>true</addClasspath>
-                                    <!--下面必须指定好主类 如com.my.Main -->
-                                    <mainClass>org.neo4j.server.CommunityEntryPoint</mainClass>
-                                </manifest>
-                            </archive>
-                        </configuration>
                         <executions>
                             <execution>
-                                <id>unix-dist</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>single</goal>
                                 </goals>
                                 <configuration>
+                                    <attach>false</attach>
+                                    <finalName>pandadb-server-${project.parent.version}</finalName>
+                                    <appendAssemblyId>true</appendAssemblyId>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
                                     <descriptors>
                                         <descriptor>src/main/assemblies/unix-dist.xml</descriptor>
                                     </descriptors>
@@ -229,33 +197,14 @@
                     <artifactId>hbase-blob-storage</artifactId>
                     <version>${project.version}</version>
                 </dependency>
-
-                <dependency>
-                    <groupId>pandadb</groupId>
-                    <artifactId>database</artifactId>
-                    <version>0.1.0-SNAPSHOT</version>
-                </dependency>
             </dependencies>
 
         </profile>
 
         <profile>
-            <id>server-zip</id>
+            <id>server-win-dist</id>
             <build>
                 <!-- Define project structure -->
-                <resources>
-                    <resource>
-                        <directory>src/main/resources</directory>
-                    </resource>
-                    <resource>
-                        <directory>${basedir}/src/main/resources/META-INF/</directory>
-                        <targetPath>META-INF</targetPath>
-                    </resource>
-                    <resource>
-                        <directory>${basedir}</directory>
-                        <targetPath>META-INF</targetPath>
-                    </resource>
-                </resources>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -264,6 +213,11 @@
                             <finalName>pandadb-server-all-in-one-${pandadb.version}</finalName>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <artifactSet>
+                                <includes>
+                                    <include>*:*</include>
+                                </includes>
+                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -282,7 +236,7 @@
                                     <goal>shade</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/win/lib</outputDirectory>
                                     <transformers>
                                         <transformer
                                                 implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
@@ -307,19 +261,6 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <attach>false</attach>
-                            <finalName>pandadb-${pandadb.version}</finalName>
-                            <appendAssemblyId>true</appendAssemblyId>
-                            <outputDirectory>${project.build.directory}</outputDirectory>
-                            <archive>
-                                <manifest>
-                                    <addClasspath>true</addClasspath>
-                                    <!--下面必须指定好主类 如com.my.Main -->
-                                    <mainClass>org.neo4j.server.CommunityEntryPoint</mainClass>
-                                </manifest>
-                            </archive>
-                        </configuration>
                         <executions>
                             <execution>
                                 <id>windows-dist</id>
@@ -328,6 +269,10 @@
                                     <goal>single</goal>
                                 </goals>
                                 <configuration>
+                                    <attach>false</attach>
+                                    <finalName>pandadb-server-${project.parent.version}</finalName>
+                                    <appendAssemblyId>true</appendAssemblyId>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
                                     <descriptors>
                                         <descriptor>src/main/assemblies/windows-dist.xml</descriptor>
                                     </descriptors>
@@ -350,14 +295,7 @@
                     <artifactId>hbase-blob-storage</artifactId>
                     <version>${project.version}</version>
                 </dependency>
-
-                <dependency>
-                    <groupId>pandadb</groupId>
-                    <artifactId>database</artifactId>
-                    <version>0.1.0-SNAPSHOT</version>
-                </dependency>
             </dependencies>
-
         </profile>
     </profiles>
 
