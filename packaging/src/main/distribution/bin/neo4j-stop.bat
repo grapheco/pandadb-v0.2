@@ -1,5 +1,5 @@
 @echo off
-set base=%PANDADB_HOME%
+set base=..
 set config=%base%/conf/neo4j.conf
 for /f "tokens=1,2 delims==" %%a in (%config%) do (
   if "%%a"=="dbms.connector.http.listen_address" set port=%%b
