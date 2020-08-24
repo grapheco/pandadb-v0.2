@@ -118,6 +118,24 @@ class DisTest {
   }
 
   @Test
+  def deletePropertyTest(): Unit = {
+    val tx = session.beginTransaction()
+    val res1 = tx.run("create (n:label1:label2:label3{name:'u1', age1:1, age2:2, age3:3}) return n").next().get(0).asEntity()
+    Assert.assertEquals(true, res1.containsKey("age2"))
+    Assert.assertEquals(true, res1.containsKey("age3"))
+
+    val res3 = tx.run("match (n:label1) where n.name='u1' remove n.age3, n.age2 return n").next().get(0).asEntity()
+    tx.success()
+    tx.close()
+    val tx2 = sessionR.beginTransaction()
+    val res2 = tx2.run("match(n:label1) where n.name='u1' return n").next().get(0).asEntity()
+
+    Assert.assertEquals(true, res2.containsKey("age1"))
+    Assert.assertEquals(false, res2.containsKey("age2"))
+    Assert.assertEquals(false, res2.containsKey("age3"))
+  }
+
+  @Test
   def relationshipTest(): Unit = {
     val tx = session.beginTransaction()
 
