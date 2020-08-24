@@ -81,8 +81,24 @@ class DriverTest {
 
     Assert.assertEquals(List("bbb", "Person", "People", "Star").asJava, res2)
 
+    //delete node label
+    val res3 = tx.run("match (n:bbb) where n.name='u1' remove n:People:Star return labels(n)").next().get(0).asList()
+    Assert.assertEquals(List("bbb", "Person").asJava, res3)
     tx.success()
     tx.close()
+  }
+
+  @Test
+  def deletePropertyTest(): Unit = {
+    val tx = session.beginTransaction()
+    val res1 = tx.run("create (n:label1:label2:label3{name:'u1', age1:1, age2:2, age3:3}) return n").next().get(0).asEntity()
+    Assert.assertEquals(true, res1.containsKey("age2"))
+    Assert.assertEquals(true, res1.containsKey("age3"))
+
+    val res2 = tx.run("match (n:label1) where n.name='u1' remove n.age3, n.age2 return n").next().get(0).asEntity()
+    Assert.assertEquals(true, res2.containsKey("age1"))
+    Assert.assertEquals(false, res2.containsKey("age2"))
+    Assert.assertEquals(false, res2.containsKey("age3"))
   }
 
   @Test
@@ -122,21 +138,22 @@ class DriverTest {
     val tx = session.beginTransaction()
     val blob1 = tx.run("return <https://www.baidu.com/img/flexible/logo/pc/result.png> as r").next().get("r").asBlob()
 
+    Assert.assertTrue(blob1.length > 0)
+
     Assert.assertArrayEquals(IOUtils.toByteArray(new URL("https://www.baidu.com/img/flexible/logo/pc/result.png")),
       blob1.offerStream {
         IOUtils.toByteArray(_)
       })
 
-    Assert.assertTrue(blob1.length > 0)
-
     val basedir = new File("../hbase-blob-storage/testinput/ai").getCanonicalFile.getAbsolutePath
-    val blob2 = tx.run(s"return <file://${basedir}/bluejoe1.jpg> as r").next().get("r").asBlob()
-    Assert.assertArrayEquals(IOUtils.toByteArray(new FileInputStream(new File(basedir, "bluejoe1.jpg"))),
+    val blob2 = tx.run(s"return <file://${basedir}/test1.png> as r").next().get("r").asBlob()
+
+    Assert.assertTrue(blob2.length > 0)
+
+    Assert.assertArrayEquals(IOUtils.toByteArray(new FileInputStream(new File(basedir, "test1.png"))),
       blob2.offerStream {
         IOUtils.toByteArray(_)
       })
-
-    Assert.assertTrue(blob2.length > 0)
 
     Assert.assertEquals(true, tx.run("return Blob.empty() ~:0.5 Blob.empty() as r").next().get("r").asBoolean());
     Assert.assertEquals(true, tx.run("return Blob.empty() ~:0.5 Blob.empty() as r").next().get("r").asBoolean());
@@ -144,7 +161,7 @@ class DriverTest {
     Assert.assertEquals(true, tx.run("return Blob.empty() ~: Blob.empty() as r").next().get("r").asBoolean());
 
     Assert.assertEquals(true, tx.run(
-      s"return <file://${basedir}/bluejoe1.jpg> ~: <file://${basedir}/bluejoe2.jpg> as r")
+      s"return <file://${basedir}/bluejoe2.jpg> ~: <file://${basedir}/bluejoe2.jpg> as r")
       .next().get("r").asBoolean());
 
     Assert.assertTrue(tx.run("return '翟天临' :: '天临 翟' as r").next().get("r").asDouble() > 0.7);
@@ -154,17 +171,17 @@ class DriverTest {
     Assert.assertEquals(true, tx.run("return '翟天临' ~:jaro/0.7 '天临 翟' as r").next().get("r").asBoolean());
     Assert.assertEquals(false, tx.run("return '翟天临' ~:jaro/0.8 '天临 翟' as r").next().get("r").asBoolean());
 
-    Assert.assertEquals(new File(basedir, "bluejoe1.jpg").length(),
-      tx.run(s"return <file://${basedir}/bluejoe1.jpg> ->length as x")
+    Assert.assertEquals(new File(basedir, "bluejoe2.jpg").length(),
+      tx.run(s"return <file://${basedir}/bluejoe2.jpg> ->length as x")
         .next().get("x").asLong());
 
-    Assert.assertEquals("image/jpeg", tx.run(s"return <file://${basedir}/bluejoe1.jpg>->mime as x")
+    Assert.assertEquals("image/jpeg", tx.run(s"return <file://${basedir}/bluejoe2.jpg>->mime as x")
       .next().get("x").asString());
 
-    Assert.assertEquals(3968, tx.run(s"return <file://${basedir}/bluejoe1.jpg>->width as x")
+    Assert.assertEquals(4032, tx.run(s"return <file://${basedir}/bluejoe2.jpg>->width as x")
       .next().get("x").asInt());
 
-    Assert.assertEquals(2976, tx.run(s"return <file://${basedir}/bluejoe1.jpg>->height as x")
+    Assert.assertEquals(3024, tx.run(s"return <file://${basedir}/bluejoe2.jpg>->height as x")
       .next().get("x").asInt());
 
     tx.success()
