@@ -204,12 +204,12 @@ class DriverTest {
       s"return <file://${basedir}/bluejoe2.jpg> ~: <file://${basedir}/bluejoe2.jpg> as r")
       .next().get("r").asBoolean());
 
-    Assert.assertTrue(tx.run("return '翟天临' :: '天临 翟' as r").next().get("r").asDouble() > 0.7);
-    Assert.assertTrue(tx.run("return '翟天临' :: '天临 翟' as r").next().get("r").asDouble() < 0.8);
-    Assert.assertTrue(tx.run("return '翟天临' ::jaro '天临 翟' as r").next().get("r").asDouble() > 0.7);
-    Assert.assertEquals(true, tx.run("return '翟天临' ~: '天临 翟' as r").next().get("r").asBoolean());
-    Assert.assertEquals(true, tx.run("return '翟天临' ~:jaro/0.7 '天临 翟' as r").next().get("r").asBoolean());
-    Assert.assertEquals(false, tx.run("return '翟天临' ~:jaro/0.8 '天临 翟' as r").next().get("r").asBoolean());
+    //    Assert.assertTrue(tx.run("return '孙悟空' :: '悟空 孙' as r").next().get("r").asDouble() > 0.7);
+    //    Assert.assertTrue(tx.run("return '孙悟空' :: '悟空 孙' as r").next().get("r").asDouble() < 0.8);
+    //    Assert.assertTrue(tx.run("return '孙悟空' ::jaro '悟空 孙' as r").next().get("r").asDouble() > 0.7);
+    //    Assert.assertEquals(true, tx.run("return '孙悟空' ~: '悟空 孙' as r").next().get("r").asBoolean());
+    //    Assert.assertEquals(true, tx.run("return '孙悟空' ~:jaro/0.7 '悟空 孙' as r").next().get("r").asBoolean());
+    //    Assert.assertEquals(false, tx.run("return '孙悟空' ~:jaro/0.8 '悟空 孙' as r").next().get("r").asBoolean());
 
     Assert.assertEquals(new File(basedir, "bluejoe2.jpg").length(),
       tx.run(s"return <file://${basedir}/bluejoe2.jpg> ->length as x")
@@ -289,11 +289,13 @@ class DriverTest {
   }
 
   @Test
-  def blobTxError(): Unit = {
+  def blobTxTest(): Unit = {
     val tx = session.beginTransaction()
     tx.run("create (n:bbb{name:'test_blob', age:10, blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n").next().get(0).asEntity()
     val res2 = tx.run("match (n:bbb) where n.name='test_blob' remove n.blob return n ").next().get(0).asEntity()
-    //      Assert.assertEquals(false, res2.get("blob"))
+    Assert.assertEquals("NULL", res2.get("blob").toString)
+    Assert.assertEquals("NULL", res2.get("whatever").toString)
+    Assert.assertEquals("test_blob", res2.get("name").asString())
     tx.success()
     tx.close()
   }
