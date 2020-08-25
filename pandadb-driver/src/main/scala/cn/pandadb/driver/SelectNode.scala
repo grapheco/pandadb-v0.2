@@ -13,7 +13,6 @@ object SelectNode {
   val groupId = "panda"
 
   private def initJraft(routeTable: RouteTable, uri: String): Unit = {
-
     val conf = JRaftUtils.getConfiguration(uri)
     routeTable.updateConfiguration(groupId, conf)
     routeTable.refreshConfiguration(cliClientService, groupId, 10000)
@@ -39,14 +38,26 @@ object SelectNode {
   }
 
   def getDriver(authTokens: AuthToken, isWriteStatement: Boolean, routeTable: RouteTable, uuri: String): Driver = {
-    val nn: String = getNode(isWriteStatement, routeTable, uuri)
-    val str = nn.split(":")
-    val peerIp = str(0) // peer ip
-    val peerPort = str(1) // peer port
-    //get bolt port
-    val boltPort = DriverUtils.getBoltPort(peerIp, peerPort.toInt)
-    val uri: String = s"bolt://$peerIp:$boltPort"
-    GraphDatabase.driver(uri, authTokens)
+    initJraft(routeTable, uuri)
+    val leader = routeTable.selectLeader(groupId)
+    if (leader != null) {
+      val nn: String = getNode(isWriteStatement, routeTable, uuri)
+      val str = nn.split(":")
+      val peerIp = str(0) // peer ip
+      val peerPort = str(1) // peer port
+      //get bolt port
+      val boltPort = DriverUtils.getBoltPort(peerIp, peerPort.toInt)
+      val uri: String = s"bolt://$peerIp:$boltPort"
+      GraphDatabase.driver(uri, authTokens)
+    }
+    else {
+      try {
+        val uri: String = s"bolt://$uuri"
+        GraphDatabase.driver(uri, authTokens)
+      } catch {
+        case exception: Exception => throw new IllegalArgumentException("if not cluster model, port should be bolt port!")
+      }
+    }
   }
 }
 
