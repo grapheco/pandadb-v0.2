@@ -218,6 +218,76 @@ class DriverTest {
   //      driver.close()
   //    }
 
+  @Test
+  def esError(): Unit = {
+    val tx = session.beginTransaction()
+    tx.run(
+      """CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})
+        |CREATE (Keanu:Person {name:'Keanu Reeves', born:1964})
+        |CREATE (Carrie:Person {name:'Carrie-Anne Moss', born:1967})
+        |CREATE (Laurence:Person {name:'Laurence Fishburne', born:1961})
+        |CREATE (Hugo:Person {name:'Hugo Weaving', born:1960})
+        |CREATE (LillyW:Person {name:'Lilly Wachowski', born:1967})
+        |CREATE (LanaW:Person {name:'Lana Wachowski', born:1965})
+        |CREATE (JoelS:Person {name:'Joel Silver', born:1952})
+        |CREATE (Keanu)-[:ACTED_IN {roles:['Neo']}]-> (TheMatrix),
+        |(Carrie)-[:ACTED_IN {roles:['Trinity']}]-> (TheMatrix),
+        |(Laurence)-[:ACTED_IN {roles:['Morpheus']}]-> (TheMatrix),
+        |(Hugo)-[:ACTED_IN {roles:['Agent Smith']}]-> (TheMatrix),
+        |(LillyW)-[:DIRECTED]-> (TheMatrix),
+        |(LanaW)-[:DIRECTED]-> (TheMatrix),
+        |(JoelS)-[:PRODUCED]-> (TheMatrix)""".stripMargin
+    )
+    tx.success()
+    tx.close()
+    val tx2 = session.beginTransaction()
+    tx2.run(
+      """CREATE (ToyStory4:Movie {title:'Toy Story 4', released:2019})
+        |MERGE (Keanu:Person {name:'Keanu Reeves', born:1964})
+        |SET Keanu.wonOscar = false, Keanu.filmDebut = 1985
+        |MERGE (TomH:Person {name:'Tom Hanks', born:1956})
+        |SET TomH.wonOscar = true, TomH.filmDebut = 1980
+        |MERGE (TimA:Person {name:'Tim Allen', born:1953})
+        |SET TimA.wonOscar = false, TimA.filmDebut = '1988 maybe?'
+        |MERGE (AnnieP:Person {name:'Annie Potts', born:1952})
+        |SET AnnieP.wonOscar = false, AnnieP.filmDebut = 1978
+        |CREATE (Keanu)-[:ACTED_IN {roles:['Duke Caboom (voice)']}]-> (ToyStory4),
+        |(TomH)-[:ACTED_IN {roles:['Woody (voice)']}]-> (ToyStory4),
+        |(TimA)-[:ACTED_IN {roles:['Buzz Lightyear (voice)']}]-> (ToyStory4),
+        |(AnnieP)-[:ACTED_IN {roles:['Bo Peep (voice)']}]-> (ToyStory4)""".stripMargin
+    )
+    tx2.success()
+    tx2.close()
+  }
+
+  @Test
+  def cypherPlusError(): Unit = {
+    val basedir = new File("../hbase-blob-storage/testinput/ai").getCanonicalFile.getAbsolutePath
+
+    val tx = session.beginTransaction()
+
+    Assert.assertEquals(false, tx.run(
+      s"return <file://${basedir}/cat1.jpg> ~: <file://${basedir}/dog1.jpg> as r")
+      .next().get("r").asBoolean());
+
+    Assert.assertEquals(true, tx.run(
+      s"return <file://${basedir}/bluejoe2.jpg> ~: <file://${basedir}/bluejoe2.jpg> as r")
+      .next().get("r").asBoolean());
+
+    tx.success()
+    tx.close()
+  }
+
+  @Test
+  def blobTxError(): Unit = {
+    val tx = session.beginTransaction()
+    tx.run("create (n:bbb{name:'test_blob', age:10, blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n").next().get(0).asEntity()
+    val res2 = tx.run("match (n:bbb) where n.name='test_blob' remove n.blob return n ").next().get(0).asEntity()
+    //      Assert.assertEquals(false, res2.get("blob"))
+    tx.success()
+    tx.close()
+  }
+
   @After
   def close(): Unit = {
     val tx = session.beginTransaction()
