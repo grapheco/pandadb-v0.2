@@ -55,7 +55,7 @@ object SelectNode {
         val uri: String = s"bolt://$uuri"
         GraphDatabase.driver(uri, authTokens)
       } catch {
-        case exception: Exception => throw new IllegalArgumentException("if not cluster model, port should be bolt port!")
+        case exception: Exception => throw new IllegalArgumentException("if not cluster mode, uri port should be bolt port!")
       }
     }
   }
