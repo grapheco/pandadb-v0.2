@@ -1,32 +1,71 @@
 package concurrent
 
-import org.junit.Assert
+import org.junit.{After, Assert, Before, Test}
+import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase, StatementResult}
 
-object ConcurrentTest {
-  def main(args: Array[String]): Unit = {
-    val d1 = new PandaDriver
-    val d2 = new PandaDriver
-    val d3 = new PandaDriver
-    val d4 = new PandaDriver
-    val lst = Array[PandaDriver](d1, d2, d3, d4)
+import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
-    val testTimes = 5
+class ConcurrentTest {
+  val pandaString2 = s"panda2://127.0.0.1:8081"
+  val drivers = ArrayBuffer[Driver]()
+  val driverNumber = 50
+  val testWriteTimes = 1
+  val driver4Test = GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
 
-    lst.par.foreach(
+  for (i <- 1 to driverNumber) {
+    drivers += GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
+  }
+
+  @Test
+  def testWrite(): Unit = {
+    drivers.par.foreach(
       driver => {
-        driver.createNode(testTimes)
+        createNode(driver, testWriteTimes)
       }
     )
 
-    val d5 = new PandaDriver().driver
-    val tx = d5.session().beginTransaction()
+    val tx = driver4Test.session().beginTransaction()
     val res = tx.run("match (n) return n")
-
-    Assert.assertEquals(testTimes * lst.size, res.stream().count())
-
-    tx.run("match (n) detach delete n")
+    Assert.assertEquals(testWriteTimes * drivers.size, res.stream().count())
     tx.success()
     tx.close()
-    d5.close()
   }
+
+  @Test
+  def testRead(): Unit = {
+    drivers.par.foreach(
+      driver => {
+        queryNode(driver)
+      }
+    )
+  }
+
+  def createNode(driver: Driver, times: Int): Unit = {
+    val tx = driver.session().beginTransaction()
+    for (i <- 1 to times) {
+      val r = Random.nextInt(1000000).toString
+      tx.run(s"create (n:aaa{name:'${r}', age:100, money:1.5, date:date('2020-06-06'), isBoy:true, lst:['a', 'b']})")
+      println("ok", i)
+    }
+    tx.success()
+    tx.close()
+    driver.close()
+  }
+
+  def queryNode(driver: Driver): Unit = {
+    val tx = driver.session().beginTransaction()
+    val res = tx.run("match (n) return n")
+    println(res.stream().count())
+    tx.close()
+  }
+
+  //  @Before
+  //  def close(): Unit = {
+  //    val tx = driver4Test.session().beginTransaction()
+  //    tx.run("match (n) detach delete n")
+  //    tx.success()
+  //    tx.close()
+  //    driver4Test.close()
+  //  }
 }
