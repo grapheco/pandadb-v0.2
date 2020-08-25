@@ -46,15 +46,10 @@ class DriverTest {
 
   @Before
   def init(): Unit = {
-    if (new File("/testoutput/data1").exists()) {
-      FileUtils.deleteDirectory(new File("/testoutput/data1"))
+    if (new File("/testoutput").exists()) {
+      FileUtils.deleteDirectory(new File("/testoutput"))
     }
-    if (new File("/testoutput/data2").exists()) {
-      FileUtils.deleteDirectory(new File("/testoutput/data2"))
-    }
-    if (new File("/testoutput/data3").exists()) {
-      FileUtils.deleteDirectory(new File("/testoutput/data3"))
-    }
+
     startServer1()
     driver = GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
     session = driver.session()
