@@ -86,7 +86,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     logger.info("load snapshot.")
     val snap = new PandaGraphSnapshotFile
     val loadDirectory = new File(reader.getPath)
-    val dataPath = Paths.get(getDataPath(), "databases" + File.separator).toString
+    val dataPath = Paths.get(getDataPath(), "databases").toString
     if (loadDirectory.isDirectory) {
       val files = loadDirectory.listFiles()
       if (files.length == 0) {
