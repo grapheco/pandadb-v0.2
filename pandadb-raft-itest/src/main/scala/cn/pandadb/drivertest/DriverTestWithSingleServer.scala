@@ -12,13 +12,13 @@ import cn.pandadb.jraft.PandaJraftService
 import cn.pandadb.server.PandaRuntimeContext
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.junit.{After, Assert, Before, Test}
-import org.neo4j.blob.Blob
 import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase, Session}
 import org.neo4j.server.CommunityBootstrapper
 
 import scala.collection.JavaConverters._
 
-class DriverTest {
+// make sure jraft.enabled = false
+class DriverTestWithSingleServer {
   val pandaString2 = s"panda2://127.0.0.1:7610"
   var driver: Driver = _
   var session: Session = _
@@ -26,9 +26,9 @@ class DriverTest {
 
   def startServer1(): Unit = {
     neo4jServer1 = new CommunityBootstrapper
-    val confFile: File = new File("testinput/test1.conf")
+    val confFile: File = new File("./testinput/test1.conf")
 
-    val dbFile = Paths.get("/testoutput", "data1").toFile()
+    val dbFile = Paths.get("./testoutput", "data1").toFile()
 
     neo4jServer1.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
 
@@ -46,8 +46,8 @@ class DriverTest {
 
   @Before
   def init(): Unit = {
-    if (new File("/testoutput").exists()) {
-      FileUtils.deleteDirectory(new File("/testoutput"))
+    if (new File("./testoutput").exists()) {
+      FileUtils.deleteDirectory(new File("./testoutput"))
     }
 
     startServer1()

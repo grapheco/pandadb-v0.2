@@ -17,9 +17,9 @@ object PandaJraftTest1 {
 
   def main(args: Array[String]): Unit = {
     val neo4jServer: CommunityBootstrapper = new CommunityBootstrapper
-    val confFile: File = new File("testinput/test1.conf")
+    val confFile: File = new File("./testinput/test1.conf")
 
-    val dbFile = Paths.get("/testoutput", "data1").toFile()
+    val dbFile = Paths.get("./testoutput", "data1").toFile()
 
     neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
 
@@ -42,9 +42,9 @@ object PandaJraftTest2 {
 
   def main(args: Array[String]): Unit = {
     val neo4jServer: CommunityBootstrapper = new CommunityBootstrapper
-    val confFile: File = new File("testinput/test2.conf")
+    val confFile: File = new File("./testinput/test2.conf")
 
-    val dbFile = Paths.get("/testoutput", "data2").toFile()
+    val dbFile = Paths.get("./testoutput", "data2").toFile()
     neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
   }
 
@@ -54,9 +54,9 @@ object PandaJraftTest3 {
 
   def main(args: Array[String]): Unit = {
     val neo4jServer: CommunityBootstrapper = new CommunityBootstrapper
-    val confFile: File = new File("testinput/test3.conf")
+    val confFile: File = new File("./testinput/test3.conf")
 
-    val dbFile = Paths.get("/testoutput", "data3").toFile()
+    val dbFile = Paths.get("./testoutput", "data3").toFile()
     neo4jServer.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
 
   }
