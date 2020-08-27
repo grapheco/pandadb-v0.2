@@ -18,40 +18,49 @@ import org.neo4j.server.CommunityBootstrapper
 
 import scala.collection.JavaConverters._
 
-// make sure jraft.enabled = false
-class DriverTestWithSingleServer {
-  val pandaString2 = s"bolt://127.0.0.1:7610"
+// make sure jraft.enabled = true
+class DriverTestWithMultipleServers {
+  val pandaString2 = s"panda://127.0.0.1:8081"
   var driver: PandaDriver = _
-  var neo4jServer1: CommunityBootstrapper = _
+  //  var session: Session = _
 
-  def startServer1(): Unit = {
-    neo4jServer1 = new CommunityBootstrapper
-    val confFile: File = new File("./testinput/single.conf")
+  val neo4jServer1: CommunityBootstrapper = new CommunityBootstrapper
+  val neo4jServer2: CommunityBootstrapper = new CommunityBootstrapper
+  val neo4jServer3: CommunityBootstrapper = new CommunityBootstrapper
 
-    val dbFile = Paths.get("./testoutput", "data1").toFile()
+  def startServer(server: CommunityBootstrapper, confName: String, dbName: String, flag: Int = 0): Unit = {
+    val confFile: File = new File(s"./testinput/$confName.conf")
 
-    neo4jServer1.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+    val dbFile = Paths.get("./testoutput", s"$dbName").toFile()
 
-    println("confile================" + confFile.getAbsolutePath)
+    server.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
 
-    val config = PandaRuntimeContext.contextGet[PandaConfig]()
-    if (config.useJraft) {
-      while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId == null) {
-        println("no leader")
-        Thread.sleep(500)
+    println("confile================" + confFile.getPath)
+
+    if (flag == 1) {
+      val config = PandaRuntimeContext.contextGet[PandaConfig]()
+      if (config.useJraft) {
+        while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId == null) {
+          println("no leader")
+          Thread.sleep(500)
+        }
+        println(PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId)
       }
-      println(PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId)
     }
   }
 
   @Before
   def init(): Unit = {
+
     if (new File("./testoutput").exists()) {
       FileUtils.deleteDirectory(new File("./testoutput"))
     }
+    startServer(neo4jServer1, "test1", "data1")
+    startServer(neo4jServer2, "test2", "data2")
+    startServer(neo4jServer3, "test3", "data3", 1)
 
-    startServer1()
-    driver = PandaDriver.create(pandaString2, "neo4j", "neo4j")
+    driver = new PandaDriver(pandaString2, "neo4j", "neo4j")
+    //    session = driver.session()
   }
 
   @Test
@@ -65,9 +74,9 @@ class DriverTestWithSingleServer {
       IOUtils.toByteArray(new URL("https://www.baidu.com/img/flexible/logo/pc/result.png")),
       blob.offerStream(IOUtils.toByteArray(_))
     )
+
     tx.success()
     tx.close()
-    session.close()
   }
 
   @Test
@@ -83,8 +92,6 @@ class DriverTestWithSingleServer {
     Assert.assertEquals(false, res2.containsKey("blob"))
     tx2.success()
     tx2.close()
-    session.close()
-
   }
 
   @Test
@@ -102,8 +109,6 @@ class DriverTestWithSingleServer {
 
     tx.success()
     tx.close()
-    session.close()
-
   }
 
   @Test
@@ -128,8 +133,6 @@ class DriverTestWithSingleServer {
     Assert.assertEquals(List("bbb", "Person").asJava, res3)
     tx.success()
     tx.close()
-    session.close()
-
   }
 
   @Test
@@ -176,7 +179,6 @@ class DriverTestWithSingleServer {
 
     tx.success()
     tx.close()
-    session.close()
 
   }
 
@@ -234,8 +236,6 @@ class DriverTestWithSingleServer {
 
     tx.success()
     tx.close()
-    session.close()
-
   }
 
   @Test
@@ -286,7 +286,7 @@ class DriverTestWithSingleServer {
 
   @Test
   def cypherPlusError(): Unit = {
-    val session = driver.readSession()
+    val session = driver.writeSession()
     val basedir = new File("../hbase-blob-storage/testinput/ai").getCanonicalFile.getAbsolutePath
 
     val tx = session.beginTransaction()
@@ -301,6 +301,8 @@ class DriverTestWithSingleServer {
 
     tx.success()
     tx.close()
+    session.close()
+
   }
 
   @Test
@@ -315,13 +317,14 @@ class DriverTestWithSingleServer {
     tx.success()
     tx.close()
     session.close()
-
   }
 
   @After
   def close: Unit = {
     driver.close()
     neo4jServer1.stop()
+    neo4jServer2.stop()
+    neo4jServer3.stop()
   }
 }
 

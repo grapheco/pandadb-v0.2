@@ -6,6 +6,7 @@ import java.util
 import java.util.Optional
 
 import cn.pandadb.config.PandaConfig
+import cn.pandadb.driver.v2.PandaDriver
 import cn.pandadb.jraft.PandaJraftService
 import cn.pandadb.server.PandaRuntimeContext
 import org.apache.commons.io.FileUtils
@@ -16,12 +17,13 @@ import org.neo4j.server.CommunityBootstrapper
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
+// make sure all the jraft.enabled = true
 class DriverConcurrentTest {
   val pandaString2 = s"panda2://127.0.0.1:8081"
-  val drivers = ArrayBuffer[Driver]()
+  val drivers = ArrayBuffer[PandaDriver]()
   val driverNumber = 50
   val testWriteTimes = 1
-  val driver4Test = GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
+  val driver4Test = new PandaDriver(pandaString2, "neo4j", "neo4j")
 
   val neo4jServer1: CommunityBootstrapper = new CommunityBootstrapper
   val neo4jServer2: CommunityBootstrapper = new CommunityBootstrapper
@@ -29,7 +31,7 @@ class DriverConcurrentTest {
 
 
   for (i <- 1 to driverNumber) {
-    drivers += GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
+    drivers += new PandaDriver(pandaString2, "neo4j", "neo4j")
   }
 
   def startServer(server: CommunityBootstrapper, confName: String, dbName: String, flag: Int = 0): Unit = {
@@ -71,9 +73,11 @@ class DriverConcurrentTest {
       }
     )
 
-    val tx = driver4Test.session().beginTransaction()
+    val tx = driver4Test.readSession().beginTransaction()
     val res = tx.run("match (n) return n")
+
     Assert.assertEquals(testWriteTimes * drivers.size, res.stream().count())
+
     tx.success()
     tx.close()
   }
@@ -87,20 +91,19 @@ class DriverConcurrentTest {
     )
   }
 
-  def createNode(driver: Driver, times: Int): Unit = {
-    val tx = driver.session().beginTransaction()
+  def createNode(driver: PandaDriver, times: Int): Unit = {
+    val tx = driver.writeSession().beginTransaction()
     for (i <- 1 to times) {
       val r = Random.nextInt(1000000).toString
       tx.run(s"create (n:aaa{name:'${r}', age:100, money:1.5, date:date('2020-06-06'), isBoy:true, lst:['a', 'b']})")
-      println("ok", i)
     }
     tx.success()
     tx.close()
     driver.close()
   }
 
-  def queryNode(driver: Driver): Unit = {
-    val tx = driver.session().beginTransaction()
+  def queryNode(driver: PandaDriver): Unit = {
+    val tx = driver.readSession().beginTransaction()
     val res = tx.run("match (n) return n")
     println(res.stream().count())
     tx.close()
