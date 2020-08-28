@@ -51,7 +51,7 @@ class DriverTestWithSingleServer {
     }
 
     startServer1()
-    driver = PandaDriver.create(pandaString2, "neo4j", "neo4j")
+    driver = new PandaDriver(pandaString2, "neo4j", "neo4j")
   }
 
   @Test
@@ -153,7 +153,7 @@ class DriverTestWithSingleServer {
 
     //way 1
     tx.run("create (n:band{name:'Wu Tiao Ren', company:'Modern Sky'}) return n")
-    tx.run("create (n:person{name:'仁科', skill:'Accordion, Guitar', blob:<https://pic1.zhimg.com/v2-b3a20c939f1a8d9e0b01a8f0af0192f5_1440w.jpg>})")
+    tx.run("create (n:person{name:'仁科', skill:'Accordion, Guitar'})")
     tx.run("create (n:person{name:'阿茂', skill:'Folk Guitar'})")
     tx.run(
       """match (a:person{name:'仁科'}), (b:person{name:'阿茂'}), (c:band{name:'Wu Tiao Ren'})
@@ -320,6 +320,12 @@ class DriverTestWithSingleServer {
 
   @After
   def close: Unit = {
+    //    val session = driver.writeSession()
+    //    val tx = session.beginTransaction()
+    //    tx.run("match (n) detach delete n") // for delete blobs
+    //    tx.success()
+    //    tx.close()
+    //    session.close()
     driver.close()
     neo4jServer1.stop()
   }

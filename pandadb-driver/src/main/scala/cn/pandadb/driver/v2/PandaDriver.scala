@@ -9,12 +9,6 @@ import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase, Session}
 
 import scala.util.Random
 
-object PandaDriver {
-  def create(uri: String, username: String, password: String): PandaDriver = {
-    new PandaDriver(uri, username, password)
-  }
-}
-
 class PandaDriver(uri: String, username: String, password: String) {
 
   if (!uri.startsWith("panda://") && !uri.startsWith("bolt://")) {

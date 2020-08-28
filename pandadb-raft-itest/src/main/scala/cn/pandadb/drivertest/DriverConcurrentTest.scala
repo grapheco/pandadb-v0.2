@@ -19,7 +19,7 @@ import scala.util.Random
 
 // make sure all the jraft.enabled = true
 class DriverConcurrentTest {
-  val pandaString2 = s"panda2://127.0.0.1:8081"
+  val pandaString2 = s"panda://127.0.0.1:8081"
   val drivers = ArrayBuffer[PandaDriver]()
   val driverNumber = 50
   val testWriteTimes = 1

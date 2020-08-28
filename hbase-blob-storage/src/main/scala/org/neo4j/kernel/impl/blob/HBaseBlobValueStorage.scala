@@ -84,6 +84,20 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
     _table.delete(_hbaseUtil.buildDelete(id))
     logger.debug(s"deleted blob: ${id.asLiteralString()}");
   }
+
+  override def loadGroup(gid: BlobId): Option[Array[Blob]] = {
+    throw new NotImplementedError("not implement loadGroup")
+  }
+
+  override def saveGroup(blobs: Array[Blob]): BlobId = {
+
+    throw new NotImplementedError("not implement saveGroup")
+
+  }
+
+  override def deleteGroup(gid: BlobId): Unit = {
+    throw new NotImplementedError("not implement deleteGroup")
+  }
 }
 
 
