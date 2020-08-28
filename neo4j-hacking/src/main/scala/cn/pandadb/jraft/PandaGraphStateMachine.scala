@@ -2,7 +2,10 @@ package cn.pandadb.jraft
 
 import java.io.{File, IOException}
 import java.nio.ByteBuffer
+import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicLong
+
+import cn.pandadb.config.PandaConfig
 
 import scala.collection.JavaConversions._
 import com.alipay.remoting.exception.CodecException
@@ -15,7 +18,7 @@ import com.alipay.sofa.jraft.util.Utils
 import org.neo4j.graphdb.GraphDatabaseService
 import cn.pandadb.jraft.operations.WriteOperations
 import cn.pandadb.jraft.snapshot.PandaGraphSnapshotFile
-import cn.pandadb.server.Logging
+import cn.pandadb.server.{Logging, PandaRuntimeContext}
 
 
 class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMachineAdapter with Logging{
@@ -46,14 +49,21 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
       iter.next
     }
   }
+  def getDataPath(): String = {
+    val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+    pandaConfig.dataPath
+  }
 
+  def getActiveDataBase(): String = {
+    val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+    pandaConfig.activeDatabase
+  }
   override def onSnapshotSave(writer: SnapshotWriter, done: Closure): Unit = {
     logger.info("save snapshot.")
     val snap = new PandaGraphSnapshotFile
     Utils.runInThread(new Runnable {
       override def run(): Unit = {
-        var dataPath = writer.getPath.substring(0, 20)
-        dataPath = dataPath.concat("data\\databases\\graph.db\\")
+        val dataPath = Paths.get(getDataPath(), "databases" + File.separator + getActiveDataBase).toString
         snap.save(dataPath, writer.getPath)
         if (writer.addFile("backup.zip")) done.run(Status.OK())
       }
@@ -76,6 +86,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     logger.info("load snapshot.")
     val snap = new PandaGraphSnapshotFile
     val loadDirectory = new File(reader.getPath)
+    val dataPath = Paths.get(getDataPath(), "databases").toString
     if (loadDirectory.isDirectory) {
       val files = loadDirectory.listFiles()
       if (files.length == 0) {
@@ -84,7 +95,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
       }
       else {
         files.foreach(f => {
-          if (f.getName.endsWith("zip")) snap.load(f.getAbsolutePath, reader.getPath.substring(0, 20).concat("data\\databases\\"))
+          if (f.getName.endsWith("zip")) snap.load(f.getAbsolutePath, dataPath)
         })
         return true
       }

@@ -63,13 +63,18 @@ object StoreBlobIO extends Logging {
 
   def deleteBlobArrayProperty(ic: ContextMap, blobs: BlobArray): Unit = {
     blobs.value().map(_.asInstanceOf[ManagedBlob].id).foreach(
-      id => ic.get[BlobStorage].delete(id)
+      // changed by lzx 20200826
+//      id => ic.get[BlobStorage].delete(id)
+       id => if (ic.get[BlobStorage].load(id)!=null) ic.get[BlobStorage].delete(id)
     );
   }
 
   def deleteBlobProperty(ic: ContextMap, primitive: PrimitiveRecord, propRecord: PropertyRecord, block: PropertyBlock): Unit = {
     val entry = BlobIO.unpack(block.getValueBlocks);
-    ic.get[BlobStorage].delete(entry.id);
+    // changed by lzx 20200826
+    if (ic.get[BlobStorage].load(entry.id) != null) {
+      ic.get[BlobStorage].delete(entry.id);
+    }
   }
 
   def readBlob(ic: ContextMap, bytes: Array[Byte]): Blob = {

@@ -81,12 +81,30 @@ class WriteOperations extends Serializable with Logging{
     ops.append(NodeSetProperty(node, propertyKey, value))
   }
   def nodeRemoveProperty(node: Long, propertyKey: String): Unit = {
+    for (i <- ops.size-1 to 0 by -1) {
+      ops(i) match {
+        case op: NodeSetProperty =>
+          if (op.node.equals(node) && op.propertyKey.equals(propertyKey) && op.value.isInstanceOf[BlobValue]) {
+            ops.remove(i)
+          }
+        case _ =>
+      }
+    }
     ops.append(NodeRemoveProperty(node, propertyKey))
   }
   def relationshipSetProperty(relationship: Long, propertyKey: String, value: Value): Unit = {
     ops.append(RelationshipSetProperty(relationship, propertyKey, value))
   }
   def relationshipRemoveProperty(relationship: Long, propertyKey: String): Unit = {
+    for (i <- ops.size-1 to 0 by -1) {
+      ops(i) match {
+        case op: RelationshipSetProperty =>
+          if (op.relationship.equals(relationship) && op.propertyKey.equals(propertyKey) && op.value.isInstanceOf[BlobValue]) {
+            ops.remove(i)
+          }
+        case _ =>
+      }
+    }
     ops.append(RelationshipRemoveProperty(relationship, propertyKey))
   }
   def graphSetProperty(propertyKey: String, value: Value): Unit = {

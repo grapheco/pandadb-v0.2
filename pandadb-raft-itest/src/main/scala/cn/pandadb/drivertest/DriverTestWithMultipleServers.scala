@@ -1,27 +1,71 @@
+package cn.pandadb.drivertest
+
 import java.io.{File, FileInputStream}
 import java.net.URL
+import java.nio.file.Paths
 import java.time.LocalDate
+import java.util
+import java.util.Optional
 
-import org.apache.commons.io.IOUtils
+import cn.pandadb.config.PandaConfig
+import cn.pandadb.driver.v2.PandaDriver
+import cn.pandadb.jraft.PandaJraftService
+import cn.pandadb.server.PandaRuntimeContext
+import org.apache.commons.io.{FileUtils, IOUtils}
 import org.junit.{After, Assert, Before, Test}
-import org.neo4j.blob.Blob
 import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase, Session}
+import org.neo4j.server.CommunityBootstrapper
 
 import scala.collection.JavaConverters._
 
-class DriverTest {
-  val pandaString2 = s"panda2://127.0.0.1:8081"
-  var driver: Driver = _
-  var session: Session = _
+// make sure jraft.enabled = true
+class DriverTestWithMultipleServers {
+  val pandaString2 = s"panda://127.0.0.1:8081"
+  var driver: PandaDriver = _
+  //  var session: Session = _
+
+  val neo4jServer1: CommunityBootstrapper = new CommunityBootstrapper
+  val neo4jServer2: CommunityBootstrapper = new CommunityBootstrapper
+  val neo4jServer3: CommunityBootstrapper = new CommunityBootstrapper
+
+  def startServer(server: CommunityBootstrapper, confName: String, dbName: String, flag: Int = 0): Unit = {
+    val confFile: File = new File(s"./testinput/$confName.conf")
+
+    val dbFile = Paths.get("./testoutput", s"$dbName").toFile()
+
+    server.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
+
+    println("confile================" + confFile.getPath)
+
+    if (flag == 1) {
+      val config = PandaRuntimeContext.contextGet[PandaConfig]()
+      if (config.useJraft) {
+        while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId == null) {
+          println("no leader")
+          Thread.sleep(500)
+        }
+        println(PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId)
+      }
+    }
+  }
 
   @Before
   def init(): Unit = {
-    driver = GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
-    session = driver.session()
+
+    if (new File("./testoutput").exists()) {
+      FileUtils.deleteDirectory(new File("./testoutput"))
+    }
+    startServer(neo4jServer1, "test1", "data1")
+    startServer(neo4jServer2, "test2", "data2")
+    startServer(neo4jServer3, "test3", "data3", 1)
+
+    driver = new PandaDriver(pandaString2, "neo4j", "neo4j")
+    //    session = driver.session()
   }
 
   @Test
   def createBlobTest(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
     val res = tx.run("create (n:aaa{name:'test_blob', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
 
@@ -37,6 +81,7 @@ class DriverTest {
 
   @Test
   def deleteBlobTest(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
     tx.run("create (n:delete_blob{name:'test_blob', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
     tx.success()
@@ -51,6 +96,7 @@ class DriverTest {
 
   @Test
   def createCypherTest(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
     val record = tx.run("create (n:aaa{name:'test2', age:100, money:1.5, date:date('2020-06-06'), isBoy:true, lst:['a', 'b']}) return n").next().get(0).asEntity()
 
@@ -67,6 +113,7 @@ class DriverTest {
 
   @Test
   def updateCypherTest(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
     tx.run("create (n:bbb{name:'u1', age:100})")
     val res = tx.run("match (n:bbb) where n.name='u1' set n.age=200 set n.isBoy=true return n").next().get(0).asEntity()
@@ -90,6 +137,7 @@ class DriverTest {
 
   @Test
   def deletePropertyTest(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
     val res1 = tx.run("create (n:label1:label2:label3{name:'u1', age1:1, age2:2, age3:3}) return n").next().get(0).asEntity()
     Assert.assertEquals(true, res1.containsKey("age2"))
@@ -103,6 +151,7 @@ class DriverTest {
 
   @Test
   def relationshipTest(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
 
     //way 1
@@ -135,6 +184,7 @@ class DriverTest {
 
   @Test
   def cypherPlusTest(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
     val blob1 = tx.run("return <https://www.baidu.com/img/flexible/logo/pc/result.png> as r").next().get("r").asBlob()
 
@@ -164,12 +214,12 @@ class DriverTest {
       s"return <file://${basedir}/bluejoe2.jpg> ~: <file://${basedir}/bluejoe2.jpg> as r")
       .next().get("r").asBoolean());
 
-    Assert.assertTrue(tx.run("return '翟天临' :: '天临 翟' as r").next().get("r").asDouble() > 0.7);
-    Assert.assertTrue(tx.run("return '翟天临' :: '天临 翟' as r").next().get("r").asDouble() < 0.8);
-    Assert.assertTrue(tx.run("return '翟天临' ::jaro '天临 翟' as r").next().get("r").asDouble() > 0.7);
-    Assert.assertEquals(true, tx.run("return '翟天临' ~: '天临 翟' as r").next().get("r").asBoolean());
-    Assert.assertEquals(true, tx.run("return '翟天临' ~:jaro/0.7 '天临 翟' as r").next().get("r").asBoolean());
-    Assert.assertEquals(false, tx.run("return '翟天临' ~:jaro/0.8 '天临 翟' as r").next().get("r").asBoolean());
+    //    Assert.assertTrue(tx.run("return '孙悟空' :: '悟空 孙' as r").next().get("r").asDouble() > 0.7);
+    //    Assert.assertTrue(tx.run("return '孙悟空' :: '悟空 孙' as r").next().get("r").asDouble() < 0.8);
+    //    Assert.assertTrue(tx.run("return '孙悟空' ::jaro '悟空 孙' as r").next().get("r").asDouble() > 0.7);
+    //    Assert.assertEquals(true, tx.run("return '孙悟空' ~: '悟空 孙' as r").next().get("r").asBoolean());
+    //    Assert.assertEquals(true, tx.run("return '孙悟空' ~:jaro/0.7 '悟空 孙' as r").next().get("r").asBoolean());
+    //    Assert.assertEquals(false, tx.run("return '孙悟空' ~:jaro/0.8 '悟空 孙' as r").next().get("r").asBoolean());
 
     Assert.assertEquals(new File(basedir, "bluejoe2.jpg").length(),
       tx.run(s"return <file://${basedir}/bluejoe2.jpg> ->length as x")
@@ -188,43 +238,93 @@ class DriverTest {
     tx.close()
   }
 
-  //  @Test
-  //  def bugReplay(): Unit ={
-  //    val tx = session.beginTransaction()
-  //    Assert.assertEquals(1.toLong, tx.run("return 1 :: 2 as r").next().get("r"))
-  //    tx.success()
-  //    tx.close()
-  //  }
-
-  //  @Test
-  //  def query(): Unit = {
-  //    val tx = session.beginTransaction()
-  //    val res = tx.run("match (n) return n")
-  //    while (res.hasNext) {
-  //      val record = res.next().get(0).asEntity()
-  //      println(record.get("name").asString())
-  //    }
-  //    tx.success()
-  //    tx.close()
-  //  }
-
-  //    @Test
-  //    def delete(): Unit = {
-  //      val tx = session.beginTransaction()
-  //      tx.run("match (n) detach delete n")
-  //      tx.success()
-  //      tx.close()
-  //      session.close()
-  //      driver.close()
-  //    }
-
-  @After
-  def close(): Unit = {
+  @Test
+  def esError(): Unit = {
+    val session = driver.writeSession()
     val tx = session.beginTransaction()
-    tx.run("match (n) detach delete n")
+    tx.run(
+      """CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})
+        |CREATE (Keanu:Person {name:'Keanu Reeves', born:1964})
+        |CREATE (Carrie:Person {name:'Carrie-Anne Moss', born:1967})
+        |CREATE (Laurence:Person {name:'Laurence Fishburne', born:1961})
+        |CREATE (Hugo:Person {name:'Hugo Weaving', born:1960})
+        |CREATE (LillyW:Person {name:'Lilly Wachowski', born:1967})
+        |CREATE (LanaW:Person {name:'Lana Wachowski', born:1965})
+        |CREATE (JoelS:Person {name:'Joel Silver', born:1952})
+        |CREATE (Keanu)-[:ACTED_IN {roles:['Neo']}]-> (TheMatrix),
+        |(Carrie)-[:ACTED_IN {roles:['Trinity']}]-> (TheMatrix),
+        |(Laurence)-[:ACTED_IN {roles:['Morpheus']}]-> (TheMatrix),
+        |(Hugo)-[:ACTED_IN {roles:['Agent Smith']}]-> (TheMatrix),
+        |(LillyW)-[:DIRECTED]-> (TheMatrix),
+        |(LanaW)-[:DIRECTED]-> (TheMatrix),
+        |(JoelS)-[:PRODUCED]-> (TheMatrix)""".stripMargin
+    )
+    tx.success()
+    tx.close()
+    val tx2 = session.beginTransaction()
+    tx2.run(
+      """match (n:Movie) where n.title='The Matrix' remove n.tagline
+        |CREATE (ToyStory4:Movie {title:'Toy Story 4', released:2019})
+        |MERGE (Keanu:Person {name:'Keanu Reeves', born:1964})
+        |SET Keanu.wonOscar = false, Keanu.filmDebut = 1985
+        |MERGE (TomH:Person {name:'Tom Hanks', born:1956})
+        |SET TomH.wonOscar = true, TomH.filmDebut = 1980
+        |MERGE (TimA:Person {name:'Tim Allen', born:1953})
+        |SET TimA.wonOscar = false, TimA.filmDebut = '1988 maybe?'
+        |MERGE (AnnieP:Person {name:'Annie Potts', born:1952})
+        |SET AnnieP.wonOscar = false, AnnieP.filmDebut = 1978
+        |CREATE (Keanu)-[:ACTED_IN {roles:['Duke Caboom (voice)']}]-> (ToyStory4),
+        |(TomH)-[:ACTED_IN {roles:['Woody (voice)']}]-> (ToyStory4),
+        |(TimA)-[:ACTED_IN {roles:['Buzz Lightyear (voice)']}]-> (ToyStory4),
+        |(AnnieP)-[:ACTED_IN {roles:['Bo Peep (voice)']}]-> (ToyStory4)""".stripMargin
+    )
+    tx2.success()
+    tx2.close()
+    session.close()
+
+  }
+
+  @Test
+  def cypherPlusError(): Unit = {
+    val session = driver.writeSession()
+    val basedir = new File("../hbase-blob-storage/testinput/ai").getCanonicalFile.getAbsolutePath
+
+    val tx = session.beginTransaction()
+
+    Assert.assertEquals(false, tx.run(
+      s"return <file://${basedir}/cat1.jpg> ~: <file://${basedir}/dog1.jpg> as r")
+      .next().get("r").asBoolean());
+
+    Assert.assertEquals(true, tx.run(
+      s"return <file://${basedir}/bluejoe2.jpg> ~: <file://${basedir}/bluejoe2.jpg> as r")
+      .next().get("r").asBoolean());
+
     tx.success()
     tx.close()
     session.close()
+
+  }
+
+  @Test
+  def blobTxTest(): Unit = {
+    val session = driver.writeSession()
+    val tx = session.beginTransaction()
+    tx.run("create (n:bbb{name:'test_blob', age:10, blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n").next().get(0).asEntity()
+    val res2 = tx.run("match (n:bbb) where n.name='test_blob' remove n.blob return n ").next().get(0).asEntity()
+    Assert.assertEquals("NULL", res2.get("blob").toString)
+    Assert.assertEquals("NULL", res2.get("whatever").toString)
+    Assert.assertEquals("test_blob", res2.get("name").asString())
+    tx.success()
+    tx.close()
+    session.close()
+  }
+
+  @After
+  def close: Unit = {
     driver.close()
+    neo4jServer1.stop()
+    neo4jServer2.stop()
+    neo4jServer3.stop()
   }
 }
+
