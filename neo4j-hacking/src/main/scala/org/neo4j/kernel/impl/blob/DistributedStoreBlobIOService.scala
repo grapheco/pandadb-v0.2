@@ -25,6 +25,7 @@ import java.nio.ByteBuffer
 import cn.pandadb.config.PandaConfig
 import cn.pandadb.jraft.PandaJraftService
 import cn.pandadb.server.PandaRuntimeContext
+import org.apache.commons.lang.NotImplementedException
 import org.neo4j.blob._
 import org.neo4j.blob.impl.BlobFactory
 import org.neo4j.blob.util._
@@ -32,26 +33,24 @@ import org.neo4j.kernel.impl.store.record.{PrimitiveRecord, PropertyBlock, Prope
 import org.neo4j.values.storable.{BlobArray, BlobValue}
 
 /**
-  * Created by bluejoe on 2019/3/29.
+  * Created by lzx on 2020/8/28.
   */
-object StoreBlobIO extends Logging {
-  def saveAndEncodeBlobAsByteArray(ic: ContextMap, blob: Blob): Array[Byte] = {
-    // changed by lzx on 2020/08/05 for raft
-    if (blob.isInstanceOf[BlobEntry]) {
-      BlobIO.pack(blob.asInstanceOf[BlobEntry])
-    }
-    else {
-      val bid = ic.get[BlobStorage].save(blob);
-      BlobIO.pack(BlobFactory.makeEntry(bid, blob));
-    }
+class DistributedStoreBlobIOService extends StoreBlobIOService {
+  override def saveBlobArray(buf: ByteBuffer, blobs: Array[Blob], ic: ContextMap): Unit = {
+    throw new NotImplementedException
   }
 
-  def saveBlob(ic: ContextMap, blob: Blob, keyId: Int, block: PropertyBlock): Unit = {
-    // changed by lzx on 2020/08/05 for raft
-    if (blob.isInstanceOf[BlobEntry]) {
-      block.setValueBlocks(BlobIO._pack(blob.asInstanceOf[BlobEntry], keyId));
+  override def saveBlob(ic: ContextMap, blob: Blob, keyId: Int, block: PropertyBlock): Unit = {
+    if (blob.isInstanceOf[BlobEntry]) { // used for follower nodes save blob
+      val blobEntry = blob.asInstanceOf[BlobEntry]
+      if (ic.get[BlobStorage].load(blobEntry.id).isDefined) {
+        block.setValueBlocks(BlobIO._pack(blobEntry, keyId));
+      }
+      else {
+        throw new Exception(s"the blob is not in BlobStorage: BlobId(${blobEntry.id}) BlobStorage(${ic.get[BlobStorage].getClass})")
+      }
     }
-    else {
+    else {  // used for leader node save blob
       val bid = ic.get[BlobStorage].save(blob);
       val blobEntry = BlobFactory.makeEntry(bid, blob)
       if (PandaRuntimeContext.contextGet[PandaConfig]().useJraft && PandaRuntimeContext.contextGet[PandaJraftService]().isLeader()) {
@@ -61,41 +60,22 @@ object StoreBlobIO extends Logging {
     }
   }
 
-  def deleteBlobArrayProperty(ic: ContextMap, blobs: BlobArray): Unit = {
-    blobs.value().map(_.asInstanceOf[ManagedBlob].id).foreach(
-      // changed by lzx 20200826
-//      id => ic.get[BlobStorage].delete(id)
-       id => if (ic.get[BlobStorage].load(id)!=null) ic.get[BlobStorage].delete(id)
-    );
+  override def deleteBlobArrayProperty(ic: ContextMap, blobs: BlobArray): Unit = {
+    throw new NotImplementedException
   }
 
-  def deleteBlobProperty(ic: ContextMap, primitive: PrimitiveRecord, propRecord: PropertyRecord, block: PropertyBlock): Unit = {
+  override def deleteBlobProperty(ic: ContextMap, block: PropertyBlock): Unit = {
     val entry = BlobIO.unpack(block.getValueBlocks);
-    // changed by lzx 20200826
-    if (ic.get[BlobStorage].load(entry.id) != null) {
+    if (ic.get[BlobStorage].load(entry.id).isDefined) { // if blobstorage is shared by multi-nodes like hbase
       ic.get[BlobStorage].delete(entry.id);
     }
   }
 
-  def readBlob(ic: ContextMap, bytes: Array[Byte]): Blob = {
-    readBlobValue(ic, StreamUtils.convertByteArray2LongArray(bytes)).blob;
+  override def readBlobArray(ic: ContextMap, dataBuffer: ByteBuffer, arrayLength: Int): BlobArray = {
+    throw new NotImplementedException
   }
 
-  def readBlobArray(ic: ContextMap, dataBuffer: ByteBuffer, arrayLength: Int): Array[Blob] = {
-    (0 to arrayLength - 1).map { x =>
-      val byteLength = dataBuffer.getInt();
-      val blobByteArray = new Array[Byte](byteLength);
-      dataBuffer.get(blobByteArray);
-      StoreBlobIO.readBlob(ic, blobByteArray);
-    }.toArray
-  }
-
-
-  def readBlobValue(ic: ContextMap, block: PropertyBlock): BlobValue = {
-    readBlobValue(ic, block.getValueBlocks);
-  }
-
-  def readBlobValue(ic: ContextMap, values: Array[Long]): BlobValue = {
+  override def readBlobValue(ic: ContextMap, values: Array[Long]): BlobValue = {
     val entry = BlobIO.unpack(values);
     val storage = ic.get[BlobStorage];
 
@@ -108,8 +88,4 @@ object StoreBlobIO extends Logging {
 
     BlobValue(blob);
   }
-}
-
-class BlobNotExistException(bid: BlobId) extends RuntimeException {
-
 }
