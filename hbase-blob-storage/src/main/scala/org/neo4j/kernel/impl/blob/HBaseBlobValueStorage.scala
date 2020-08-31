@@ -98,6 +98,16 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
   override def deleteGroup(gid: BlobId): Unit = {
     throw new NotImplementedError("not implement deleteGroup")
   }
+
+  override def existsGroup(gid: BlobId): Boolean = {
+    throw new NotImplementedError("not implement existsGroup")
+
+  }
+
+  override def exists(bid: BlobId): Boolean = {
+    throw new NotImplementedError("not implement exists")
+
+  }
 }
 
 
