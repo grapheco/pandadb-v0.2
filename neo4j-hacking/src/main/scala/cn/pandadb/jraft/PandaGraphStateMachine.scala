@@ -17,7 +17,7 @@ import com.alipay.sofa.jraft.storage.snapshot.{SnapshotReader, SnapshotWriter}
 import com.alipay.sofa.jraft.util.Utils
 import org.neo4j.graphdb.GraphDatabaseService
 import cn.pandadb.jraft.operations.WriteOperations
-import cn.pandadb.jraft.snapshot.PandaGraphSnapshotFile
+import cn.pandadb.jraft.snapshot.{LogIndexFile, PandaGraphSnapshotFile}
 import cn.pandadb.server.{Logging, PandaRuntimeContext}
 
 
@@ -28,16 +28,28 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     */
   private val leaderTerm = new AtomicLong(-1)
 
+  var logIndexFile: LogIndexFile = new LogIndexFile(getLogInexPath())
+
   def isLeader: Boolean = this.leaderTerm.get > 0
 
+  def getLogInexPath(): String = {
+    Paths.get(getDataPath(), "logIndex").toString
+  }
+
   override def onApply(iter: SofaIterator): Unit = {
-    while ( iter.hasNext() ) {
+    var logIndex: Int = logIndexFile.load()
+    while ( iter.hasNext()) {
       var writeOperations: WriteOperations = null
       // leader not apply task
-      if (!isLeader) { // Have to parse FetchAddRequest from this user log.
+      if (!isLeader && iter.getIndex > logIndex) { // Have to parse FetchAddRequest from this user log.
         val data = iter.getData
-        try
+        try {
           writeOperations = SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(data.array, classOf[WriteOperations].getName)
+          println("repeaat operation=====" + writeOperations)
+          //println("index intside1=================" + iter.getIndex)
+          //println("index intside2=================" + iter.getIndex)
+          //logIndex = iter.getIndex.toInt
+        }
         catch {
           case e: CodecException =>
             logger.error("Fail to decode IncrementAndGetRequest", e)
@@ -48,6 +60,9 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
       }
       iter.next
     }
+    logIndex = iter.getIndex.toInt - 1
+    logIndexFile.save(logIndex)
+    //println("index outside=================" + iter.getIndex)
   }
   def getDataPath(): String = {
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
