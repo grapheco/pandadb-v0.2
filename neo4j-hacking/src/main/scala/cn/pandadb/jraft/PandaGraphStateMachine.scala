@@ -56,7 +56,8 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
       }
       iter.next
     }
-    logIndex = iter.getIndex.toInt - 1
+    val logIndexNew = iter.getIndex.toInt - 1
+    if (logIndexNew > logIndex) logIndex = logIndexNew
     logIndexFile.save(logIndex)
   }
   def getDataPath(): String = {
