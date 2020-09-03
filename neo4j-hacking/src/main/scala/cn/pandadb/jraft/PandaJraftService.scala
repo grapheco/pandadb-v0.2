@@ -7,7 +7,7 @@ import cn.pandadb.jraft.operations.WriteOperations
 import cn.pandadb.server.{Logging, PandaRuntimeContext}
 import com.alipay.remoting.exception.CodecException
 import com.alipay.remoting.serialization.SerializerManager
-import com.alipay.sofa.jraft.entity.Task
+import com.alipay.sofa.jraft.entity.{PeerId, Task}
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.kernel.lifecycle.Lifecycle
 
@@ -52,10 +52,18 @@ class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle with Lo
     logger.info("==== jraft server started ====")
   }
 
-  override def stop(): Unit = {}
+  override def stop(): Unit = {
+    logger.info("==== jraft server stop ====")
+    shutdown()
+  }
 
   override def shutdown(): Unit = {
     jraftServer.shutdown()
     logger.info("==== jraft server shutdown ====")
   }
+
+  def getPeers(): Set[PeerId] = {
+    jraftServer.getPeers()
+  }
+
 }

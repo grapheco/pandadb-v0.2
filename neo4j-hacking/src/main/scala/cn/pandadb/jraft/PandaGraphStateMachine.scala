@@ -48,7 +48,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
         }
         catch {
           case e: CodecException =>
-            logger.error("Fail to decode IncrementAndGetRequest", e)
+            logger.error("Fail to decode WriteOperations", e)
         }
         if (writeOperations != null) {
           writeOperations.applyTxOpeartionsToDB(neo4jDB)
@@ -64,7 +64,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     pandaConfig.dataPath
   }
 
-  def getActiveDataBase(): String = {
+  def getActiveDatabase(): String = {
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
     pandaConfig.activeDatabase
   }
@@ -73,7 +73,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     val snap = new PandaGraphSnapshotFile
     Utils.runInThread(new Runnable {
       override def run(): Unit = {
-        val dataPath = Paths.get(getDataPath(), "databases" + File.separator + getActiveDataBase).toString
+        val dataPath = Paths.get(getDataPath(), "databases" + File.separator + getActiveDatabase).toString
         snap.save(dataPath, writer.getPath)
         if (writer.addFile("backup.zip")) done.run(Status.OK())
       }

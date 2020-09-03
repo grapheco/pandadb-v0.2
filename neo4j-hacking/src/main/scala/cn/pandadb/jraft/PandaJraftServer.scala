@@ -1,6 +1,7 @@
 package cn.pandadb.jraft
 
 import java.io.{File, IOException}
+import scala.collection.JavaConverters._
 
 import cn.pandadb.config.PandaConfig
 import cn.pandadb.jraft.rpc.GetNeo4jBoltAddressRequestProcessor
@@ -10,6 +11,7 @@ import com.alipay.sofa.jraft.conf.Configuration
 import com.alipay.sofa.jraft.entity.PeerId
 import com.alipay.sofa.jraft.option.NodeOptions
 import com.alipay.sofa.jraft.rpc.{RaftRpcServerFactory, RpcServer}
+import com.alipay.sofa.jraft.{JRaftUtils, RouteTable}
 import org.apache.commons.io.FileUtils
 import org.neo4j.graphdb.GraphDatabaseService
 
@@ -64,7 +66,6 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
 
     this.node = this.raftGroupService.start
     logger.info("Started PandaJraftServer at port:" + this.node.getNodeId.getPeerId.getPort)
-
   }
 
   def shutdown(): Unit = {
@@ -94,6 +95,10 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
   def getSnapshotTime(): Int = {
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
     pandaConfig.snapshotTime
+  }
+
+  def getPeers(): Set[PeerId] = {
+    RouteTable.getInstance().getConfiguration(this.groupId).getPeerSet.asScala.toSet
   }
 
 }
