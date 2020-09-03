@@ -45,10 +45,6 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
         val data = iter.getData
         try {
           writeOperations = SerializerManager.getSerializer(SerializerManager.Hessian2).deserialize(data.array, classOf[WriteOperations].getName)
-          println("repeaat operation=====" + writeOperations)
-          //println("index intside1=================" + iter.getIndex)
-          //println("index intside2=================" + iter.getIndex)
-          //logIndex = iter.getIndex.toInt
         }
         catch {
           case e: CodecException =>
@@ -62,7 +58,6 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     }
     logIndex = iter.getIndex.toInt - 1
     logIndexFile.save(logIndex)
-    //println("index outside=================" + iter.getIndex)
   }
   def getDataPath(): String = {
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
