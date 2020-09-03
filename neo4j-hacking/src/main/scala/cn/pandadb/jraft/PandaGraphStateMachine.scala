@@ -28,11 +28,11 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     */
   private val leaderTerm = new AtomicLong(-1)
 
-  var logIndexFile: LogIndexFile = new LogIndexFile(getLogInexPath())
+  val logIndexFile: LogIndexFile = new LogIndexFile(getLogIndexPath())
 
   def isLeader: Boolean = this.leaderTerm.get > 0
 
-  def getLogInexPath(): String = {
+  def getLogIndexPath(): String = {
     Paths.get(getDataPath(), "logIndex").toString
   }
 
