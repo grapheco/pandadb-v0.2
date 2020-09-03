@@ -2,57 +2,23 @@ package cn.pandadb.itest
 
 import java.io.{File, FileInputStream}
 import java.net.URL
-import java.nio.file.Paths
-import java.time.LocalDate
-import java.util
-import java.util.Optional
 
-import cn.pandadb.config.PandaConfig
 import cn.pandadb.driver.v2.PandaDriver
-import cn.pandadb.jraft.PandaJraftService
-import cn.pandadb.server.PandaRuntimeContext
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.junit.{After, Assert, Before, Test}
-import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase, Session}
 import org.neo4j.server.CommunityBootstrapper
 
 import scala.collection.JavaConverters._
 
-// make sure jraft.enabled = false
 class CypherVerification {
-  //val pandaString2 = s"bolt://10.0.82.217:8076"
-  val pandaString2 = s"bolt://127.0.0.1:7610"
+  val pandaString2 = s"bolt://10.0.82.217:8076"
+//  val pandaString2 = s"bolt://10.0.82.220:7687"
   var driver: PandaDriver = _
   var neo4jServer1: CommunityBootstrapper = _
 
-  def startServer1(): Unit = {
-    neo4jServer1 = new CommunityBootstrapper
-    val confFile: File = new File("./testinput/single.conf")
-
-    val dbFile = Paths.get("./testoutput", "data1").toFile()
-
-    neo4jServer1.start(dbFile, Optional.of(confFile), new util.HashMap[String, String])
-
-    println("confile================" + confFile.getAbsolutePath)
-
-    val config = PandaRuntimeContext.contextGet[PandaConfig]()
-    if (config.useJraft) {
-      while (PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId == null) {
-        println("no leader")
-        Thread.sleep(500)
-      }
-      println(PandaRuntimeContext.contextGet[PandaJraftService]().jraftServer.getNode.getLeaderId)
-    }
-  }
-
   @Before
   def init(): Unit = {
-    if (new File("./testoutput").exists()) {
-      FileUtils.deleteDirectory(new File("./testoutput"))
-    }
-
-    startServer1()
-    driver = PandaDriver.create(pandaString2, "neo4j", "neo4j")
+    driver = new PandaDriver(pandaString2, "neo4j", "bigdata")
   }
 
   @Test
@@ -63,17 +29,16 @@ class CypherVerification {
     tx.run("CREATE (n:Person {age: 10, name: 'bob2', address: 'CNIC, CAS, Beijing, China'})")
     tx.run("CREATE (n:Person {age: 40, name: 'alex', address: 'CNIC, CAS, Beijing, China'})")
     tx.run("CREATE (n:Person {age: 40, name: 'alex2', address: 'CNIC, CAS, Beijing, China'})")
-    tx.run("CREATE INDEX ON :Person(address)")
-    tx.run("CREATE INDEX ON :Person(name)")
-    tx.run("CREATE INDEX ON :Person(age)")
-    tx.run("CREATE INDEX ON :Person(name, age)")
+//    tx.run("CREATE INDEX ON :Person(address)")
+//    tx.run("CREATE INDEX ON :Person(name)")
+//    tx.run("CREATE INDEX ON :Person(age)")
+//    tx.run("CREATE INDEX ON :Person(name, age)")
     tx.run("match (f:Person), (s:Person) where f.age=40 AND s.age=10 CREATE (f)-[hood:Father]->(s)")
     tx.success()
     tx.close()
 
     val tx2 = session.beginTransaction()
-    val res2 = tx2.run("match (n:Person) return count(n)").next().get(0).asEntity()
-    Assert.assertEquals(4, res2.containsKey("count(n)"))
+    Assert.assertEquals(4, tx2.run("match (n:Person) return count(n)").next().get(0).asInt())
     tx2.success()
     tx2.close()
   }
@@ -401,6 +366,5 @@ class CypherVerification {
   @After
   def close: Unit = {
     driver.close()
-    neo4jServer1.stop()
   }
 }
