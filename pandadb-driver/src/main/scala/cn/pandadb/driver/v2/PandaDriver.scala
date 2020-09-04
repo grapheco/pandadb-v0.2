@@ -62,8 +62,7 @@ class PandaDriver(uri: String, username: String, password: String) {
         driver = GraphDatabase.driver(uri, AuthTokens.basic(username, password))
       } catch {
         case exception: Exception => {
-          println(exception)
-          throw new IllegalArgumentException("check your bolt server port ")
+          throw new Exception(s"check your bolt server port or ${exception.getMessage}")
         }
       }
     }
