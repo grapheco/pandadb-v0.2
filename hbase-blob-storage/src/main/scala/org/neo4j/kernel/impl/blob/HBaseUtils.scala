@@ -1,6 +1,6 @@
 package org.neo4j.kernel.impl.blob
 
-import java.io.{ByteArrayInputStream, InputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataOutputStream, InputStream}
 import java.util
 import java.util.{Properties, UUID}
 
@@ -106,6 +106,30 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
       buffer.toList
     }
     else null
+  }
+
+  //TODO: Wait to test
+  def buildPutGroup(blob: Blob, gId: BlobId, columnName: Int): Put = {
+    val retPut: Put = new Put(gId.asByteArray())
+    val cellData = blobToCellData(blob)
+    val colName = convertInt2ByteArray(columnName)
+    retPut.addColumn(columnFamily, colName, cellData)
+    retPut
+  }
+
+  //TODO: Wait to test
+  def buildDeleteGroup(gid: BlobId): Delete = {
+    val delete: Delete = new Delete(gid.asByteArray())
+    delete
+  }
+
+  def convertInt2ByteArray(value: Int): Array[Byte] = {
+    val res = new Array[Byte](4)
+    res(0) = (value >> 24).toByte
+    res(1) = (value >> 16).toByte
+    res(2) = (value >> 8).toByte
+    res(3) = (value >> 0).toByte
+    res
   }
 }
 

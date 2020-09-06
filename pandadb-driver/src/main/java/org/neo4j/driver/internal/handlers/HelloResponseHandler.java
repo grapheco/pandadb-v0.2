@@ -54,7 +54,7 @@ public class HelloResponseHandler implements ResponseHandler {
             ServerVersion serverVersion = extractNeo4jServerVersion(metadata);
             setServerVersion(channel, serverVersion);
             String connectionId = extractConnectionId(metadata);
-            extractJraftPeers(metadata);
+            extractJraftPeersBoltAddress(metadata);
             setConnectionId(channel, connectionId);
             connectionInitializedPromise.setSuccess();
         } catch (Throwable error) {
@@ -82,7 +82,7 @@ public class HelloResponseHandler implements ResponseHandler {
         return value.asString();
     }
 
-    private static void extractJraftPeers(Map<String, Value> metadata) {
+    private static void extractJraftPeersBoltAddress(Map<String, Value> metadata) {
         boolean useJraft = metadata.get(USE_JRAFT).asBoolean();
         if (useJraft) {
             List<Object> peers = metadata.get(JRAFT_PEERS).asList();

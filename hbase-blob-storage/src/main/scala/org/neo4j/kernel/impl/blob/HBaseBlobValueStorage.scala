@@ -90,13 +90,15 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
   }
 
   override def saveGroup(blobs: Array[Blob]): BlobId = {
-
-    throw new NotImplementedError("not implement saveGroup")
-
+    val gid = generateId()
+    for (i <- 0 to blobs.length){
+      _table.put(_hbaseUtil.buildPutGroup(blobs(i), gid, i))
+    }
+    gid
   }
 
   override def deleteGroup(gid: BlobId): Unit = {
-    throw new NotImplementedError("not implement deleteGroup")
+    _table.delete(_hbaseUtil.buildDeleteGroup(gid))
   }
 
   override def existsGroup(gid: BlobId): Boolean = {
