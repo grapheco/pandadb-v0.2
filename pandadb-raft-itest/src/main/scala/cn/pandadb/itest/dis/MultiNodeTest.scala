@@ -1,10 +1,32 @@
 package cn.pandadb.itest.dis
 
-import org.junit.Test
+import java.io.File
+import java.nio.file.Paths
+
+import org.junit.{After, Assert, Before, Test}
+import org.neo4j.driver.{AuthTokens, GraphDatabase}
 
 class MultiNodeTest {
+  final val pathsr = "F:\\IdCode\\pandadb-v0.2\\pandadb-raft-itest\\testoutput"
+  @Before
+  def delDirectory(): Unit = {
+    val path = Paths.get(pathsr)
+    delDir(path.toFile)
+  }
+  @After
+  def removeDir(): Unit = {
+    val path = Paths.get(pathsr)
+    delDir(path.toFile)
+  }
+
+  def delDir(dir: File): Unit = {
+    dir.listFiles().foreach(file => {
+      if (file.isDirectory) delDir(file)
+      else file.delete()
+    })
+  }
   @Test
-  def tes(): Unit = {
+  def tesSingleNode(): Unit = {
     val sp = new ServerBootStrap
     val confile = "./testinput/test1.conf"
     val confile2 = "./testinput/test2.conf"
@@ -44,5 +66,32 @@ class MultiNodeTest {
     sp.startThreeNodes()
     Thread.sleep(10000)
 
+    val bolt1 = s"bolt://127.0.0.1:7610"
+    val bolt2 = s"bolt://127.0.0.1:7620"
+    val driver = GraphDatabase.driver(bolt1, AuthTokens.basic("neo4j", "neo4j"))
+    val session = driver.session()
+    val driver2 = GraphDatabase.driver(bolt2, AuthTokens.basic("neo4j", "neo4j"))
+    val session2 = driver2.session()
+    val tx = session.beginTransaction()
+    tx.run("create(n:node{name:'haha'}) return n")
+    tx.success()
+    tx.close()
+    session.close()
+
+    val res = session2.run("match(n:node) return n").next().get(0).asEntity().get("name")
+    Assert.assertEquals("haha", res.asString())
+    println(res.asString())
+    session2.close()
+    sp.stopAllnodes()
+
+  }
+
+  @Test
+  def testOnBrowser(): Unit = {
+    val sp = new ServerBootStrap
+    sp.startThreeNodes()
+    var blf = true
+    Thread.sleep(10000)
+    sp.stopAllnodes()
   }
 }
