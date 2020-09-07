@@ -112,7 +112,7 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
   }
 
   override def exists(bid: BlobId): Boolean = {
-    val res = _table.get(_hbaseUtil.buildBlobGet(id))
+    val res = _table.get(_hbaseUtil.buildBlobGet(bid))
     !res.isEmpty
   }
 }
