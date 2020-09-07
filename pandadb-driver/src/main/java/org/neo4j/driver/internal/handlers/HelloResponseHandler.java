@@ -54,8 +54,10 @@ public class HelloResponseHandler implements ResponseHandler {
             ServerVersion serverVersion = extractNeo4jServerVersion(metadata);
             setServerVersion(channel, serverVersion);
             String connectionId = extractConnectionId(metadata);
-            extractJraftPeersBoltAddress(metadata);
             setConnectionId(channel, connectionId);
+            // NOTE: pandadb
+            extractJraftPeersBoltAddress(metadata);
+            // END_NOTE: pandadb
             connectionInitializedPromise.setSuccess();
         } catch (Throwable error) {
             onFailure(error);
@@ -82,6 +84,11 @@ public class HelloResponseHandler implements ResponseHandler {
         return value.asString();
     }
 
+    // NOTE: pandadb
+
+    /**
+     * set cluster server bolt address to InboundMessageDispatcher.java
+     */
     private static void extractJraftPeersBoltAddress(Map<String, Value> metadata) {
         boolean useJraft = metadata.get(USE_JRAFT).asBoolean();
         if (useJraft) {
@@ -92,4 +99,5 @@ public class HelloResponseHandler implements ResponseHandler {
         }
         InboundMessageDispatcher.setUseJraft(useJraft);
     }
+    // END_NOTE: pandadb
 }

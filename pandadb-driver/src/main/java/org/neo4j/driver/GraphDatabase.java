@@ -35,8 +35,10 @@ import static org.neo4j.driver.internal.DriverFactory.BOLT_ROUTING_URI_SCHEME;
  */
 public class GraphDatabase {
     private static final String LOGGER_NAME = GraphDatabase.class.getSimpleName();
+    // NOTE: pandadb
     public static AuthToken pandaAuthToken;
     public static boolean isDispatcher = true;
+    // END_NOTE: pandadb
 
     /**
      * Return a driver for a Neo4j instance with the default configuration settings
@@ -88,7 +90,9 @@ public class GraphDatabase {
      * @return a new driver to the database instance specified by the URL
      */
     public static Driver driver(String uri, AuthToken authToken) {
+        // NOTE: pandadb
         pandaAuthToken = authToken;
+        // END_NOTE: pandadb
         return driver(uri, authToken, Config.defaultConfig());
     }
 
@@ -100,7 +104,9 @@ public class GraphDatabase {
      * @return a new driver to the database instance specified by the URL
      */
     public static Driver driver(URI uri, AuthToken authToken) {
+        // NOTE: pandadb
         pandaAuthToken = authToken;
+        // END_NOTE: pandadb
         return driver(uri, authToken, Config.defaultConfig());
     }
 

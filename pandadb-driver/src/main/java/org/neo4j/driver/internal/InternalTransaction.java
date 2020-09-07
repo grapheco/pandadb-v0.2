@@ -25,16 +25,22 @@ import org.neo4j.driver.internal.async.inbound.InboundMessageDispatcher;
 import org.neo4j.driver.internal.util.Futures;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class InternalTransaction extends AbstractStatementRunner implements Transaction {
     private final ExplicitTransaction tx;
-    private ArrayList<Transaction> driverTxs = new ArrayList<>();
-    private ArrayList<Session> driverSessions = new ArrayList<>();
-    private ArrayList<Driver> pandaDrivers = new ArrayList<>();
+    // NOTE: pandadb
+    /**
+     * Call session.beginTransaction() will new a InternalTransaction.
+     * So, should clear all the data.
+     */
+    public Map<String, Driver> driverMap = new HashMap<>();
+    public Map<String, Transaction> txMap = new HashMap<>();
     private String globalLeaderUri;
-    private Driver leaderDriver;
-    private Session leaderSession;
-    private Transaction leaderTx;
+
+    private static final PandaUtils utils = new PandaUtils();
+    // END_NOTE: pandadb
 
     public InternalTransaction(ExplicitTransaction tx) {
         this.tx = tx;
@@ -42,36 +48,48 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
 
     @Override
     public void success() {
-        driverTxs.forEach(Transaction::success);
-        driverSessions.forEach(Session::close);
-        pandaDrivers.forEach(Driver::close);
-        driverTxs.clear();
-        driverSessions.clear();
-        pandaDrivers.clear();
+        // NOTE: pandadb
+        if (!txMap.isEmpty()) {
+            txMap.values().forEach(Transaction::success);
+        }
         globalLeaderUri = "";
+        // END_NOTE: pandadb
         tx.success();
     }
 
     @Override
     public void failure() {
-        driverTxs.forEach(Transaction::failure);
-        driverSessions.forEach(Session::close);
-        pandaDrivers.forEach(Driver::close);
-        driverTxs.clear();
-        driverSessions.clear();
-        pandaDrivers.clear();
+        // NOTE: pandadb
+        if (!txMap.isEmpty()) txMap.values().forEach(Transaction::failure);
         globalLeaderUri = "";
+        // END_NOTE: pandadb
         tx.failure();
     }
 
     @Override
     public void close() {
+        // NOTE: pandadb
+        if (!txMap.isEmpty()) {
+            txMap.values().forEach(Transaction::close);
+            txMap.clear();
+        }
+        if (!driverMap.isEmpty()) {
+            driverMap.values().forEach(Driver::close);
+            driverMap.clear();
+        }
+        // END_NOTE: pandadb
         Futures.blockingGet(tx.closeAsync(),
                 () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the transaction"));
     }
 
     @Override
     public StatementResult run(Statement statement) {
+        // NOTE: pandadb
+        /**
+         * If use jraft, parse user's statement and dispatch to leader or reader.
+         * No jraft, do as original.
+         * @return the statementResult
+         */
         boolean useJraft = InboundMessageDispatcher.isUseJraft();
         if (!useJraft) {
             StatementResultCursor cursor = Futures.blockingGet(tx.runAsync(statement, false),
@@ -87,33 +105,41 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 GraphDatabase.isDispatcher = true;
                 return result;
             } else {
+                // how to deal with the situation: running but suddenly change leader
                 GraphDatabase.isDispatcher = false;
-                PandaUtils utils = new PandaUtils();
                 String cypher = statement.text();
                 if (utils.isWriteCypher(cypher)) {
                     String leaderUri = utils.getLeaderUri(InboundMessageDispatcher.getLeaderId());
                     if (!leaderUri.equals(globalLeaderUri)) {
+                        Driver driver = GraphDatabase.driver(leaderUri, GraphDatabase.pandaAuthToken);
                         globalLeaderUri = leaderUri;
-                        leaderDriver = GraphDatabase.driver(leaderUri, GraphDatabase.pandaAuthToken);
-                        leaderSession = leaderDriver.session();
-                        leaderTx = leaderSession.beginTransaction();
-                        pandaDrivers.add(leaderDriver);
-                        driverSessions.add(leaderSession);
-                        driverTxs.add(leaderTx);
+                        if (driverMap.containsKey(leaderUri)) {
+                            driverMap.get(leaderUri).close();
+                            driverMap.put(leaderUri, driver);
+                        } else driverMap.put(leaderUri, driver);
+                        Transaction tx = driver.session().beginTransaction();
+                        txMap.put(leaderUri, tx);
+                        return tx.run(statement);
                     }
-                    return leaderTx.run(statement);
+                    Transaction tx = txMap.get(leaderUri);
+                    return tx.run(statement);
                 } else {
+                    Driver driver;
+                    Transaction tx;
                     String readerUri = utils.getReaderUri(InboundMessageDispatcher.getReaderIds());
-                    Driver pandaDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
-                    Session driverSession = pandaDriver.session();
-                    Transaction driverTx = driverSession.beginTransaction();
-                    pandaDrivers.add(pandaDriver);
-                    driverSessions.add(driverSession);
-                    driverTxs.add(driverTx);
-                    return driverTx.run(statement);
+                    if (driverMap.containsKey(readerUri)) {
+                        tx = txMap.get(readerUri);
+                    } else {
+                        driver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
+                        tx = driver.session().beginTransaction();
+                        driverMap.put(readerUri, driver);
+                        txMap.put(readerUri, tx);
+                    }
+                    return tx.run(statement);
                 }
             }
         }
+        // END_NOTE: pandadb
     }
 
     @Override

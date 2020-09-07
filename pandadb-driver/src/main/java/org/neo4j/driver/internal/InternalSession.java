@@ -19,6 +19,7 @@
 package org.neo4j.driver.internal;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.neo4j.driver.*;
@@ -34,11 +35,12 @@ import static java.util.Collections.emptyMap;
 public class InternalSession extends AbstractStatementRunner implements Session {
     private final NetworkSession session;
 
-    private ArrayList<Session> driverSessions = new ArrayList<>();
-    private ArrayList<Driver> pandaDrivers = new ArrayList<>();
+    //NOTE: pandadb
+    private Map<String, Driver> driverMap = new HashMap<>();
+    private Map<String, Session> sessionMap = new HashMap<>();
+    private static final PandaUtils utils = new PandaUtils();
     private String globalLeaderUri;
-    private Driver leaderDriver;
-    private Session leaderSession;
+    //END_NOTE: pandadb
 
     public InternalSession(NetworkSession session) {
         this.session = session;
@@ -61,6 +63,12 @@ public class InternalSession extends AbstractStatementRunner implements Session 
 
     @Override
     public StatementResult run(Statement statement, TransactionConfig config) {
+        //NOTE: pandadb
+        /**
+         * If use jraft, parse user's statement and dispatch to leader or reader.
+         * No jraft, do as original.
+         * @return the statementResult
+         */
         boolean useJraft = InboundMessageDispatcher.isUseJraft();
         if (!useJraft) {
             StatementResultCursor cursor = Futures.blockingGet(session.runAsync(statement, config, false),
@@ -73,7 +81,6 @@ public class InternalSession extends AbstractStatementRunner implements Session 
             return result;
         } else {
             if (!GraphDatabase.isDispatcher) {
-
                 StatementResultCursor cursor = Futures.blockingGet(session.runAsync(statement, config, false),
                         () -> terminateConnectionOnThreadInterrupt("Thread interrupted while running query in session"));
 
@@ -84,28 +91,39 @@ public class InternalSession extends AbstractStatementRunner implements Session 
                 return result;
             } else {
                 GraphDatabase.isDispatcher = false;
-                PandaUtils utils = new PandaUtils();
                 String cypher = statement.text();
                 if (utils.isWriteCypher(cypher)) {
                     String leaderUri = utils.getLeaderUri(InboundMessageDispatcher.getLeaderId());
                     if (!leaderUri.equals(globalLeaderUri)) {
+                        Driver driver = GraphDatabase.driver(leaderUri, GraphDatabase.pandaAuthToken);
                         globalLeaderUri = leaderUri;
-                        leaderDriver = GraphDatabase.driver(leaderUri, GraphDatabase.pandaAuthToken);
-                        leaderSession = leaderDriver.session();
-                        pandaDrivers.add(leaderDriver);
-                        driverSessions.add(leaderSession);
+                        if (driverMap.containsKey(leaderUri)) {
+                            driverMap.get(leaderUri).close();
+                            driverMap.put(leaderUri, driver);
+                        } else driverMap.put(leaderUri, driver);
+                        Session session = driver.session();
+                        sessionMap.put(leaderUri, session);
+                        return session.run(statement);
                     }
-                    return leaderSession.run(statement);
+                    Session session = sessionMap.get(leaderUri);
+                    return session.run(statement);
                 } else {
+                    Driver driver;
+                    Session session;
                     String readerUri = utils.getReaderUri(InboundMessageDispatcher.getReaderIds());
-                    Driver pandaDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
-                    Session driverSession = pandaDriver.session();
-                    pandaDrivers.add(pandaDriver);
-                    driverSessions.add(driverSession);
-                    return driverSession.run(statement);
+                    if (driverMap.containsKey(readerUri)) {
+                        session = sessionMap.get(readerUri);
+                    } else {
+                        driver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
+                        session = driver.session();
+                        driverMap.put(readerUri, driver);
+                        sessionMap.put(readerUri, session);
+                    }
+                    return session.run(statement);
                 }
             }
         }
+        //END_NOTE: pandadb
     }
 
     @Override
@@ -115,11 +133,13 @@ public class InternalSession extends AbstractStatementRunner implements Session 
 
     @Override
     public void close() {
-        driverSessions.forEach(Session::close);
-        pandaDrivers.forEach(Driver::close);
-        driverSessions.clear();
-        pandaDrivers.clear();
+        //NOTE: pandadb
+        if (!sessionMap.isEmpty()) sessionMap.values().forEach(Session::close);
+        if (!driverMap.isEmpty()) driverMap.values().forEach(Driver::close);
+        sessionMap.clear();
+        driverMap.clear();
         globalLeaderUri = "";
+        //END_NOTE: pandadb
 
         Futures.blockingGet(session.closeAsync(), () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the session"));
     }

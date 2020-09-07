@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Random;
 
 public class PandaUtils {
+    private int count = 0;
     public boolean isWriteCypher(String cypher) {
         String text = cypher.toLowerCase();
         if (text.contains("explain")) {
@@ -20,9 +21,9 @@ public class PandaUtils {
         return "bolt://" + cluster;
     }
 
-    //TODO: Round Robin strategy
     public String getReaderUri(List<Object> cluster) {
-        int choose = new Random().nextInt(cluster.size());
+        int choose = count % cluster.size();
+        count += 1;
         return "bolt://" + cluster.get(choose).toString();
     }
 }
