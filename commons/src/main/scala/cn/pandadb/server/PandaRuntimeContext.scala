@@ -3,7 +3,7 @@ package cn.pandadb.server
 import scala.collection.mutable.{Map => MMap}
 
 object PandaRuntimeContext {
-   val _map = MMap[String, Any]();
+  private val _map = MMap[String, Any]();
 
   def contextPut[T](key: String, value: T): T = {
     _map(key) = value
@@ -23,4 +23,8 @@ object PandaRuntimeContext {
   def contextGetOption[T]()(implicit manifest: Manifest[T]): Option[T] = contextGetOption(manifest.runtimeClass.getName);
 
   def contextRemove[T](key: String): T = _map.remove(key).getOrElse(null).asInstanceOf[T]
+
+  def clear(): Unit = {
+    _map.clear()
+  }
 }
