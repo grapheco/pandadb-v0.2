@@ -67,7 +67,7 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
     val bid = generateId()
     _table.put(_hbaseUtil.buildPut(blob, bid))
     logger.debug(s"saved blob: ${bid.asLiteralString()}")
-    bid;
+    bid
   }
 
   override def load(id: BlobId): Option[Blob] = {
@@ -82,7 +82,7 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
 
   override def delete(id: BlobId): Unit = {
     _table.delete(_hbaseUtil.buildDelete(id))
-    logger.debug(s"deleted blob: ${id.asLiteralString()}");
+    logger.debug(s"deleted blob: ${id.asLiteralString()}")
   }
 
   override def loadGroup(gid: BlobId): Option[Array[Blob]] = {
