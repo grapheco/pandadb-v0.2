@@ -82,6 +82,8 @@ class MultiNodeTest {
     Assert.assertEquals("haha", res.asString())
     println(res.asString())
     session2.close()
+    driver.close()
+    driver2.close()
     sp.stopAllnodes()
 
   }
