@@ -1,15 +1,16 @@
 package cn.pandadb.jraft
 
 import java.io.{File, IOException}
-import scala.collection.JavaConverters._
 
+import scala.collection.JavaConverters._
 import cn.pandadb.config.PandaConfig
 import cn.pandadb.jraft.rpc.GetNeo4jBoltAddressRequestProcessor
 import cn.pandadb.server.{Logging, PandaRuntimeContext}
 import com.alipay.sofa.jraft.{Node, RaftGroupService}
 import com.alipay.sofa.jraft.conf.Configuration
 import com.alipay.sofa.jraft.entity.PeerId
-import com.alipay.sofa.jraft.option.NodeOptions
+import com.alipay.sofa.jraft.option.{CliOptions, NodeOptions}
+import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl
 import com.alipay.sofa.jraft.rpc.{RaftRpcServerFactory, RpcServer}
 import com.alipay.sofa.jraft.{JRaftUtils, RouteTable}
 import org.apache.commons.io.FileUtils
@@ -19,7 +20,7 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
                        dataPath: String,
                        groupId: String,
                        serverIdStr: String,
-                       initConfStr: String) extends Logging{
+                       initConfStr: String) extends Logging {
 
   private var raftGroupService: RaftGroupService = null
   private var node: Node = null
@@ -98,7 +99,23 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
   }
 
   def getPeers(): Set[PeerId] = {
+    val uri = this.serverId.getIp + ":" + this.serverId.getPort
+    val conf = JRaftUtils.getConfiguration(uri)
+    val cliClientService = new CliClientServiceImpl
+    cliClientService.init(new CliOptions())
+    RouteTable.getInstance().updateConfiguration(this.groupId, conf)
+    RouteTable.getInstance().refreshConfiguration(cliClientService, this.groupId, 10000)
     RouteTable.getInstance().getConfiguration(this.groupId).getPeerSet.asScala.toSet
+  }
+
+  def getLeader(): PeerId = {
+    val uri = this.serverId.getIp + ":" + this.serverId.getPort
+    val conf = JRaftUtils.getConfiguration(uri)
+    val cliClientService = new CliClientServiceImpl
+    cliClientService.init(new CliOptions())
+    RouteTable.getInstance().updateConfiguration(this.groupId, conf)
+    RouteTable.getInstance().refreshConfiguration(cliClientService, this.groupId, 10000)
+    RouteTable.getInstance().selectLeader(this.groupId)
   }
 
 }

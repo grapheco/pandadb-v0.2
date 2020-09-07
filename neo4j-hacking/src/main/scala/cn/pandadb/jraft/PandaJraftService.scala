@@ -66,4 +66,7 @@ class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle with Lo
     jraftServer.getPeers()
   }
 
+  def getLeader(): PeerId = {
+    jraftServer.getLeader()
+  }
 }
