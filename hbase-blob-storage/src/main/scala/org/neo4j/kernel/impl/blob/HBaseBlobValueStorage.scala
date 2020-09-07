@@ -86,12 +86,17 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
   }
 
   override def loadGroup(gid: BlobId): Option[Array[Blob]] = {
-    throw new NotImplementedError("not implement loadGroup")
+    val res = _table.get(_hbaseUtil.buildBlobGetGroup(gid))
+    if (!res.isEmpty) {
+      val array = _hbaseUtil.buildBlobGroupFromGetResult(res)
+      Some(array)
+    }
+    else null
   }
 
   override def saveGroup(blobs: Array[Blob]): BlobId = {
     val gid = generateId()
-    for (i <- 0 to blobs.length){
+    for (i <- blobs.indices) {
       _table.put(_hbaseUtil.buildPutGroup(blobs(i), gid, i))
     }
     gid
@@ -102,13 +107,13 @@ class HBaseBlobValueStorage extends BlobStorage with Logging {
   }
 
   override def existsGroup(gid: BlobId): Boolean = {
-    throw new NotImplementedError("not implement existsGroup")
-
+    val res = _table.get(_hbaseUtil.buildBlobGetGroup(gid))
+    !res.isEmpty
   }
 
   override def exists(bid: BlobId): Boolean = {
-    throw new NotImplementedError("not implement exists")
-
+    val res = _table.get(_hbaseUtil.buildBlobGet(id))
+    !res.isEmpty
   }
 }
 

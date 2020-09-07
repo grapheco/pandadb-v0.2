@@ -108,7 +108,6 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
     else null
   }
 
-  //TODO: Wait to test
   def buildPutGroup(blob: Blob, gId: BlobId, columnName: Int): Put = {
     val retPut: Put = new Put(gId.asByteArray())
     val cellData = blobToCellData(blob)
@@ -117,10 +116,26 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
     retPut
   }
 
-  //TODO: Wait to test
   def buildDeleteGroup(gid: BlobId): Delete = {
     val delete: Delete = new Delete(gid.asByteArray())
     delete
+  }
+
+  def buildBlobGetGroup(blobId: BlobId): Get = {
+    val rowKey = blobId.asByteArray()
+    val blobGet: Get = new Get(rowKey)
+    blobGet
+  }
+
+  def buildBlobGroupFromGetResult(res: Result): Array[Blob] = {
+    val buffer = new ArrayBuffer[Blob]()
+    val entry = res.getFamilyMap(columnFamily).entrySet()
+    for (e: util.Map.Entry[Array[Byte], Array[Byte]] <- entry) {
+      val cellData = e.getValue
+      val blob = cellDataToBlob(cellData)
+      buffer.append(blob)
+    }
+    buffer.toArray
   }
 
   def convertInt2ByteArray(value: Int): Array[Byte] = {
