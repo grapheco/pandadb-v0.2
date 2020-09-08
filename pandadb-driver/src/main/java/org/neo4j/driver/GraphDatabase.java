@@ -19,6 +19,7 @@
 package org.neo4j.driver;
 
 import java.net.URI;
+import java.util.List;
 
 import org.neo4j.driver.internal.DriverFactory;
 import org.neo4j.driver.internal.cluster.RoutingSettings;
@@ -38,6 +39,35 @@ public class GraphDatabase {
     // NOTE: pandadb
     public static AuthToken pandaAuthToken;
     public static boolean isDispatcher = true;
+
+    private static List<Object> readerIds;
+    private static String leaderId;
+    private static boolean useJraft;
+
+    public static boolean isUseJraft() {
+        return useJraft;
+    }
+
+    public static void setUseJraft(boolean userJraft) {
+        GraphDatabase.useJraft = userJraft;
+    }
+
+    public static List<Object> getReaderIds() {
+        return readerIds;
+    }
+
+    public static void setReaderIds(List<Object> readerIds) {
+        GraphDatabase.readerIds = readerIds;
+    }
+
+    public static String getLeaderId() {
+        return leaderId;
+    }
+
+    public static void setLeaderId(String leaderId) {
+        GraphDatabase.leaderId = leaderId;
+    }
+
     // END_NOTE: pandadb
 
     /**

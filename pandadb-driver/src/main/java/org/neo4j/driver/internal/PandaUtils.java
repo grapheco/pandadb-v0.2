@@ -5,20 +5,17 @@ import java.util.Random;
 
 public class PandaUtils {
     private int count = 0;
+
     public boolean isWriteCypher(String cypher) {
         String text = cypher.toLowerCase();
         if (text.contains("explain")) {
             return false;
-        } else if (text.contains("create") || text.contains("merge") || text.contains("set")
-                || text.contains("delete") || text.contains("remove")) {
-            return true;
-        } else {
-            return false;
-        }
+        } else return text.contains("create") || text.contains("merge") || text.contains("set")
+                || text.contains("delete") || text.contains("remove");
     }
 
-    public String getLeaderUri(String cluster) {
-        return "bolt://" + cluster;
+    public String getLeaderUri(String leaderIp) {
+        return "bolt://" + leaderIp;
     }
 
     public String getReaderUri(List<Object> cluster) {

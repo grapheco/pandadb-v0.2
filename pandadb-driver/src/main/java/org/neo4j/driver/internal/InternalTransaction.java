@@ -21,23 +21,23 @@ package org.neo4j.driver.internal;
 import org.neo4j.driver.*;
 import org.neo4j.driver.async.StatementResultCursor;
 import org.neo4j.driver.internal.async.ExplicitTransaction;
-import org.neo4j.driver.internal.async.inbound.InboundMessageDispatcher;
 import org.neo4j.driver.internal.util.Futures;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 public class InternalTransaction extends AbstractStatementRunner implements Transaction {
     private final ExplicitTransaction tx;
     // NOTE: pandadb
-    /**
-     * Call session.beginTransaction() will new a InternalTransaction.
-     * So, should clear all the data.
+    /*
+     * Call session.beginTransaction() will new an InternalTransaction.
      */
+    private Transaction leaderTx = null;
+    private Driver leaderDriver = null;
     public Map<String, Driver> driverMap = new HashMap<>();
     public Map<String, Transaction> txMap = new HashMap<>();
-    private String globalLeaderUri;
+    public LinkedList<Statement> cypherLogs = new LinkedList<>();
 
     private static final PandaUtils utils = new PandaUtils();
     // END_NOTE: pandadb
@@ -49,10 +49,9 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     @Override
     public void success() {
         // NOTE: pandadb
-        if (!txMap.isEmpty()) {
-            txMap.values().forEach(Transaction::success);
-        }
-        globalLeaderUri = "";
+        if (!txMap.isEmpty()) txMap.values().forEach(Transaction::success);
+        if (leaderTx != null) leaderTx.success();
+        if (!cypherLogs.isEmpty()) cypherLogs.clear();
         // END_NOTE: pandadb
         tx.success();
     }
@@ -61,7 +60,7 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     public void failure() {
         // NOTE: pandadb
         if (!txMap.isEmpty()) txMap.values().forEach(Transaction::failure);
-        globalLeaderUri = "";
+        if (leaderTx != null) leaderTx.failure();
         // END_NOTE: pandadb
         tx.failure();
     }
@@ -77,6 +76,14 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
             driverMap.values().forEach(Driver::close);
             driverMap.clear();
         }
+        if (leaderTx != null) {
+            leaderTx.close();
+            leaderTx = null;
+        }
+        if (leaderDriver != null) {
+            leaderDriver.close();
+            leaderDriver = null;
+        }
         // END_NOTE: pandadb
         Futures.blockingGet(tx.closeAsync(),
                 () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the transaction"));
@@ -85,18 +92,16 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     @Override
     public StatementResult run(Statement statement) {
         // NOTE: pandadb
-        /**
+        /*
          * If use jraft, parse user's statement and dispatch to leader or reader.
          * No jraft, do as original.
          * @return the statementResult
          */
-        boolean useJraft = InboundMessageDispatcher.isUseJraft();
+        boolean useJraft = GraphDatabase.isUseJraft();
         if (!useJraft) {
             StatementResultCursor cursor = Futures.blockingGet(tx.runAsync(statement, false),
                     () -> terminateConnectionOnThreadInterrupt("Thread interrupted while running query in transaction"));
-            StatementResult result = new InternalStatementResult(tx.connection(), cursor);
-            GraphDatabase.isDispatcher = true;
-            return result;
+            return new InternalStatementResult(tx.connection(), cursor);
         } else {
             if (!GraphDatabase.isDispatcher) {
                 StatementResultCursor cursor = Futures.blockingGet(tx.runAsync(statement, false),
@@ -105,28 +110,59 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 GraphDatabase.isDispatcher = true;
                 return result;
             } else {
-                // how to deal with the situation: running but suddenly change leader
+                // pandadb logic
                 GraphDatabase.isDispatcher = false;
                 String cypher = statement.text();
+
+                // send HelloMessage to update cluster's state.
+                String savedLeaderUri = utils.getLeaderUri(GraphDatabase.getLeaderId());
+                //TODO: node shutdown, this will be failed.
+                GraphDatabase.driver(savedLeaderUri, GraphDatabase.pandaAuthToken).close();
+                String refreshLeaderUri = utils.getLeaderUri(GraphDatabase.getLeaderId());
+
+                //write cypher
                 if (utils.isWriteCypher(cypher)) {
-                    String leaderUri = utils.getLeaderUri(InboundMessageDispatcher.getLeaderId());
-                    if (!leaderUri.equals(globalLeaderUri)) {
-                        Driver driver = GraphDatabase.driver(leaderUri, GraphDatabase.pandaAuthToken);
-                        globalLeaderUri = leaderUri;
-                        if (driverMap.containsKey(leaderUri)) {
-                            driverMap.get(leaderUri).close();
-                            driverMap.put(leaderUri, driver);
-                        } else driverMap.put(leaderUri, driver);
-                        Transaction tx = driver.session().beginTransaction();
-                        txMap.put(leaderUri, tx);
-                        return tx.run(statement);
+                    /*
+                     * if changed leader, tx running in early leader should failed.
+                     * all the statement should rerun in new leader.
+                     */
+                    if (!savedLeaderUri.equals(refreshLeaderUri)) {
+                        Driver driver = GraphDatabase.driver(refreshLeaderUri, GraphDatabase.pandaAuthToken);
+                        if (leaderDriver != null) {
+                            leaderTx.failure();
+                            leaderTx.close();
+                            leaderDriver.close();
+                            leaderTx = driver.session().beginTransaction();
+                            if (!cypherLogs.isEmpty()) rerunWriteCypherInNewLeader(cypherLogs, leaderTx);
+                        } else {
+                            leaderDriver = driver;
+                            leaderTx = driver.session().beginTransaction();
+                        }
+                        driverMap.remove(savedLeaderUri);
+                        txMap.remove(savedLeaderUri);
+                        txMap.put(refreshLeaderUri, leaderTx);
+                        driverMap.put(refreshLeaderUri, driver);
                     }
-                    Transaction tx = txMap.get(leaderUri);
-                    return tx.run(statement);
-                } else {
+                    //leader not change
+                    else {
+                        if (leaderDriver == null) {
+                            Driver driver = GraphDatabase.driver(refreshLeaderUri, GraphDatabase.pandaAuthToken);
+                            leaderTx = driver.session().beginTransaction();
+                            leaderDriver = driver;
+
+                            txMap.put(refreshLeaderUri, leaderTx);
+                            driverMap.put(refreshLeaderUri, driver);
+                        }
+                        cypherLogs.add(statement);
+                    }
+                    return leaderTx.run(statement);
+                }
+                //read cypher
+                else {
+                    // TODO: chosen node offline?
                     Driver driver;
                     Transaction tx;
-                    String readerUri = utils.getReaderUri(InboundMessageDispatcher.getReaderIds());
+                    String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds());
                     if (driverMap.containsKey(readerUri)) {
                         tx = txMap.get(readerUri);
                     } else {
@@ -150,4 +186,12 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     private void terminateConnectionOnThreadInterrupt(String reason) {
         tx.connection().terminateAndRelease(reason);
     }
+
+    //NOTE: pandadb
+    private void rerunWriteCypherInNewLeader(LinkedList<Statement> cyphers, Transaction newLeaderTx) {
+        while (cyphers.size() != 0) {
+            newLeaderTx.run(cyphers.removeFirst());
+        }
+    }
+    //END_NOTE: pandadb
 }

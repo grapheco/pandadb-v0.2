@@ -18,6 +18,7 @@
  */
 package org.neo4j.driver.internal.handlers;
 
+import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.internal.shaded.io.netty.channel.Channel;
 import org.neo4j.driver.internal.shaded.io.netty.channel.ChannelPromise;
 
@@ -87,17 +88,17 @@ public class HelloResponseHandler implements ResponseHandler {
     // NOTE: pandadb
 
     /**
-     * set cluster server bolt address to InboundMessageDispatcher.java
+     * set cluster server bolt address to GraphDatabase.java as global variable
      */
     private static void extractJraftPeersBoltAddress(Map<String, Value> metadata) {
         boolean useJraft = metadata.get(USE_JRAFT).asBoolean();
         if (useJraft) {
             List<Object> peers = metadata.get(JRAFT_PEERS).asList();
             String leader = metadata.get(JRAFT_LEADER).asString();
-            InboundMessageDispatcher.setReaderIds(peers);
-            InboundMessageDispatcher.setLeaderId(leader);
+            GraphDatabase.setReaderIds(peers);
+            GraphDatabase.setLeaderId(leader);
         }
-        InboundMessageDispatcher.setUseJraft(useJraft);
+        GraphDatabase.setUseJraft(useJraft);
     }
     // END_NOTE: pandadb
 }
