@@ -129,17 +129,16 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                     if (!savedLeaderUri.equals(refreshLeaderUri)) {
                         Driver driver = GraphDatabase.driver(refreshLeaderUri, GraphDatabase.pandaAuthToken);
                         if (leaderDriver != null) {
-                            leaderTx.failure();
-                            leaderTx.close();
-                            leaderDriver.close();
                             leaderTx = driver.session().beginTransaction();
-                            if (!cypherLogs.isEmpty()) rerunWriteCypherInNewLeader(cypherLogs, leaderTx);
+                            if (!cypherLogs.isEmpty()) rerunWriteCypherInNewLeader(cypherLogs, refreshLeaderUri);
                         } else {
                             leaderDriver = driver;
                             leaderTx = driver.session().beginTransaction();
                         }
-                        driverMap.remove(savedLeaderUri);
-                        txMap.remove(savedLeaderUri);
+                        if (driverMap.containsKey(savedLeaderUri)) {
+                            driverMap.remove(savedLeaderUri);
+                            txMap.remove(savedLeaderUri);
+                        }
                         txMap.put(refreshLeaderUri, leaderTx);
                         driverMap.put(refreshLeaderUri, driver);
                     }
@@ -188,10 +187,16 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     }
 
     //NOTE: pandadb
-    private void rerunWriteCypherInNewLeader(LinkedList<Statement> cyphers, Transaction newLeaderTx) {
+    private void rerunWriteCypherInNewLeader(LinkedList<Statement> cyphers, String refreshLeaderUri) {
+        Driver driver = GraphDatabase.driver(refreshLeaderUri, GraphDatabase.pandaAuthToken);
+        Transaction tx = driver.session().beginTransaction();
+        GraphDatabase.isDispatcher = false;
         while (cyphers.size() != 0) {
-            newLeaderTx.run(cyphers.removeFirst());
+            tx.run(cyphers.removeFirst());
         }
+        tx.success();
+        tx.close();
+        driver.close();
     }
     //END_NOTE: pandadb
 }

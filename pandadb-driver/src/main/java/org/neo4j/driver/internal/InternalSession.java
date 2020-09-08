@@ -18,7 +18,6 @@
  */
 package org.neo4j.driver.internal;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,7 +25,6 @@ import org.neo4j.driver.*;
 import org.neo4j.driver.async.StatementResultCursor;
 import org.neo4j.driver.internal.async.ExplicitTransaction;
 import org.neo4j.driver.internal.async.NetworkSession;
-import org.neo4j.driver.internal.async.inbound.InboundMessageDispatcher;
 import org.neo4j.driver.internal.spi.Connection;
 import org.neo4j.driver.internal.util.Futures;
 
@@ -78,9 +76,7 @@ public class InternalSession extends AbstractStatementRunner implements Session 
 
             // query executed, it is safe to obtain a connection in a blocking way
             Connection connection = Futures.getNow(session.connectionAsync());
-            StatementResult result = new InternalStatementResult(connection, cursor);
-            GraphDatabase.isDispatcher = true;
-            return result;
+            return new InternalStatementResult(connection, cursor);
         } else {
             if (!GraphDatabase.isDispatcher) {
                 StatementResultCursor cursor = Futures.blockingGet(session.runAsync(statement, config, false),
