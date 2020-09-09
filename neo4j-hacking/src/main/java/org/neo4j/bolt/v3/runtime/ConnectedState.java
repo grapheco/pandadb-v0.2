@@ -53,9 +53,9 @@ public class ConnectedState implements BoltStateMachineState {
             if (BoltAuthenticationHelper.processAuthentication(userAgent, authToken, context)) {
                 context.connectionState().onMetadata("connection_id", Values.stringValue(context.connectionId()));
 
-
+                //NOTE: pandadb
+                // transfer jraft port to bolt port
                 PandaConfig config = PandaRuntimeContext.contextGet(PandaConfig.class.getName());
-
                 if (config.useJraft()) {
                     ArrayList<String> peersArray = new ArrayList<>();
                     PandaJraftService service = PandaRuntimeContext.contextGet(PandaJraftService.class.getName());
@@ -70,6 +70,7 @@ public class ConnectedState implements BoltStateMachineState {
                         RpcClient rpcClient = cliClientService.getRpcClient();
                         try {
                             Neo4jBoltAddressValue res = (Neo4jBoltAddressValue) rpcClient.invokeSync(peerId.getEndpoint(), request, 5000);
+
                             if (peerId.equals(leader)) {
                                 leaderUri = peerId.getIp() + res.toString();
                             }
@@ -78,13 +79,13 @@ public class ConnectedState implements BoltStateMachineState {
                             e.printStackTrace();
                         }
                     }
-
                     context.connectionState().onMetadata(JRAFT_PEERS, Values.stringArray(peersArray.toArray(new String[peersArray.size()])));
                     context.connectionState().onMetadata(JRAFT_LEADER, Values.stringValue(leaderUri));
                     context.connectionState().onMetadata(USE_JRAFT, Values.booleanValue(true));
                 } else {
                     context.connectionState().onMetadata(USE_JRAFT, Values.booleanValue(false));
                 }
+                // END_NOTE: pandadb
                 return this.readyState;
             } else {
                 return null;
@@ -106,23 +107,4 @@ public class ConnectedState implements BoltStateMachineState {
         Preconditions.checkState(this.readyState != null, "Ready state not set");
     }
 
-    private String getJraftClusters() {
-        CliClientServiceImpl cliClientService = new CliClientServiceImpl();
-        cliClientService.init(new CliOptions());
-        Configuration conf = JRaftUtils.getConfiguration("127.0.0.1:8081");
-        RouteTable.getInstance().updateConfiguration("panda", conf);
-        try {
-            RouteTable.getInstance().refreshConfiguration(cliClientService, "panda", 10000);
-            RouteTable.getInstance().refreshLeader(cliClientService, "panda", 10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        }
-        PeerId leader = RouteTable.getInstance().selectLeader("panda");
-        if (leader == null) {
-            return "no_leader";
-        }
-        return leader.toString();
-    }
 }
