@@ -19,6 +19,7 @@
 package org.neo4j.driver;
 
 import java.net.URI;
+import java.util.List;
 
 import org.neo4j.driver.internal.DriverFactory;
 import org.neo4j.driver.internal.cluster.RoutingSettings;
@@ -35,8 +36,39 @@ import static org.neo4j.driver.internal.DriverFactory.BOLT_ROUTING_URI_SCHEME;
  */
 public class GraphDatabase {
     private static final String LOGGER_NAME = GraphDatabase.class.getSimpleName();
+    // NOTE: pandadb
     public static AuthToken pandaAuthToken;
     public static boolean isDispatcher = true;
+
+    private static List<Object> readerIds;
+    private static String leaderId;
+    private static boolean useJraft;
+
+    public static boolean isUseJraft() {
+        return useJraft;
+    }
+
+    public static void setUseJraft(boolean userJraft) {
+        GraphDatabase.useJraft = userJraft;
+    }
+
+    public static List<Object> getReaderIds() {
+        return readerIds;
+    }
+
+    public static void setReaderIds(List<Object> readerIds) {
+        GraphDatabase.readerIds = readerIds;
+    }
+
+    public static String getLeaderId() {
+        return leaderId;
+    }
+
+    public static void setLeaderId(String leaderId) {
+        GraphDatabase.leaderId = leaderId;
+    }
+
+    // END_NOTE: pandadb
 
     /**
      * Return a driver for a Neo4j instance with the default configuration settings
@@ -88,7 +120,9 @@ public class GraphDatabase {
      * @return a new driver to the database instance specified by the URL
      */
     public static Driver driver(String uri, AuthToken authToken) {
+        // NOTE: pandadb
         pandaAuthToken = authToken;
+        // END_NOTE: pandadb
         return driver(uri, authToken, Config.defaultConfig());
     }
 
@@ -100,7 +134,9 @@ public class GraphDatabase {
      * @return a new driver to the database instance specified by the URL
      */
     public static Driver driver(URI uri, AuthToken authToken) {
+        // NOTE: pandadb
         pandaAuthToken = authToken;
+        // END_NOTE: pandadb
         return driver(uri, authToken, Config.defaultConfig());
     }
 

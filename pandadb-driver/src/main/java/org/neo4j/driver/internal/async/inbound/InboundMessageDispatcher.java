@@ -44,33 +44,6 @@ public class InboundMessageDispatcher implements ResponseMessageHandler {
     private boolean fatalErrorOccurred;
 
     private ResponseHandler autoReadManagingHandler;
-    private static List<Object> readerIds;
-    private static String leaderId;
-    private static boolean useJraft;
-
-    public static boolean isUseJraft() {
-        return useJraft;
-    }
-
-    public static void setUseJraft(boolean userJraft) {
-        InboundMessageDispatcher.useJraft = userJraft;
-    }
-
-    public static List<Object> getReaderIds() {
-        return readerIds;
-    }
-
-    public static void setReaderIds(List<Object> readerIds) {
-        InboundMessageDispatcher.readerIds = readerIds;
-    }
-
-    public static String getLeaderId() {
-        return leaderId;
-    }
-
-    public static void setLeaderId(String leaderId) {
-        InboundMessageDispatcher.leaderId = leaderId;
-    }
 
     public InboundMessageDispatcher(Channel channel, Logging logging) {
         this.channel = requireNonNull(channel);
