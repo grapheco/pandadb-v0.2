@@ -7,6 +7,7 @@ import java.util.Date
 import java.util.concurrent.atomic.{AtomicInteger, AtomicLong}
 
 import org.junit.{After, Before, Test}
+import org.neo4j.driver.exceptions.{DatabaseException, Neo4jException}
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
 
 import scala.util.Random
@@ -54,16 +55,18 @@ class Destroy(sp: ServerBootStrap, nodeInfoArray: Array[NodeInfo]) {
     val thread = new Thread(new Runnable {
       override def run(): Unit = {
         while (!exit) {
+          Thread.sleep(5000)
           if (nodeInfoArray.map(_.isStart).reduce(_&_)) stopOneNode
           else {
             startOneNode()
-            Thread.sleep(5000)
           }
         }
       }
     })
     thread.start()
-    Thread.sleep(20000)
+  }
+
+  def stopDestroy(): Unit = {
     this.exit = true
   }
 
@@ -81,6 +84,7 @@ class Destroy(sp: ServerBootStrap, nodeInfoArray: Array[NodeInfo]) {
 class AvailableTest {
 
   final val pathsr = "F:\\IdCode\\pandadb-v0.2\\pandadb-raft-itest\\testoutput"
+
   @Before
   def beforeTest(): Unit = {
     val path = Paths.get(pathsr)
@@ -88,6 +92,7 @@ class AvailableTest {
     if (file.exists()) delDir(path.toFile)
 
   }
+
   @After
   def afterTest(): Unit = {
     Thread.sleep(5000)
@@ -95,6 +100,7 @@ class AvailableTest {
     val file = path.toFile
     if (file.exists()) delDir(path.toFile)
   }
+
   def delDir(dir: File): Unit = {
     dir.listFiles().foreach(file => {
       if (file.isDirectory) {
@@ -109,9 +115,9 @@ class AvailableTest {
   }
 
   def startThreeNodes(sp: ServerBootStrap): Array[NodeInfo] = {
-    val node1 = new NodeInfo("./testinput/test1.conf", "./testoutput", "data1")
-    val node2 = new NodeInfo("./testinput/test2.conf", "./testoutput", "data2")
-    val node3 = new NodeInfo("./testinput/test3.conf", "./testoutput", "data3")
+    val node1 = new NodeInfo("./jraftinput/test1.conf", "./testoutput", "data1")
+    val node2 = new NodeInfo("./jraftinput/test2.conf", "./testoutput", "data2")
+    val node3 = new NodeInfo("./jraftinput/test3.conf", "./testoutput", "data3")
     sp.startNode(node1)
     sp.startNode(node2)
     sp.startNode(node3)
@@ -120,16 +126,42 @@ class AvailableTest {
 
   @Test
   def testClient(): Unit = {
-    val g = new Generator
-    val c1 = new Client("1", g)
-    c1.startTest()
-    Thread.sleep(10000)
-    c1.exit = true
+
     val sp = new ServerBootStrap
-    val nodes = startThreeNodes(sp)
+    //sp.startThreeNodes()
+    val nodesInfo = startThreeNodes(sp)
+    val des = new Destroy(sp, nodesInfo)
     Thread.sleep(10000)
-    val des = new Destroy(sp, nodes)
-    des.startDestroy()
+
+    val pstr = s"panda://127.0.0.1:8081"
+    val tc = new TCase(pstr)
+    try {
+      tc.startTest()
+      des.startDestroy()
+      //tc.blobTxTest()
+      //tc.createBlobTest()
+      tc.createCypherTest()
+      //tc.cypherPlusError()
+      // tc.cypherPlusTest()
+      //tc.deleteBlobTest()
+      //tc.deletePropertyTest()
+      //tc.relationshipTest()
+      //tc.updateCypherTest()
+      tc.stopTest()
+    }
+    catch {
+      case e: Exception => {
+        println(e.getMessage)
+        println("hhhhhhhhhhhhhhhhhhhhhhhhh")
+        println("hhhhhhhhhhhhhhhhhhhhhhhhh")
+        println("hhhhhhhhhhhhhhhhhhhhhhhhh")
+        Thread.sleep(5000)
+        des.stopDestroy()
+        sp.stopAllnodes()
+      }
+    }
+    Thread.sleep(5000)
+    des.stopDestroy()
     sp.stopAllnodes()
   }
 }

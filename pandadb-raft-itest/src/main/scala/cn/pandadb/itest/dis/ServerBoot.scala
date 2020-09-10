@@ -170,8 +170,9 @@ class ServerBootStrap() {
     else true
   }
   def stopNode(nodeInfo: NodeInfo): Boolean = {
-    val p = nodeProcessMap.get(nodeInfo.id).get
-    if (p != None) {
+    val process = nodeProcessMap.get(nodeInfo.id)
+    if (process != None) {
+      val p = process.get
       p.destroy()
       nodeInfo.setStop()
       nodeProcessMap.remove(nodeInfo.id)
@@ -206,9 +207,9 @@ class ServerBootStrap() {
 
   def startThreeNodes(): Unit = {
     //val sp = new ServerBootStrap
-    val confile = "./testinput/test1.conf"
-    val confile2 = "./testinput/test2.conf"
-    val confile3 = "./testinput/test3.conf"
+    val confile = "./jraftinput/test1.conf"
+    val confile2 = "./jraftinput/test2.conf"
+    val confile3 = "./jraftinput/test3.conf"
     val dbPath = "./testoutput"
     val dbFileName = "data1"
     val dbFileName2 = "data2"
