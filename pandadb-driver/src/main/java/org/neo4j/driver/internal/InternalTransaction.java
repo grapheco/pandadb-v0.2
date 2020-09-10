@@ -85,9 +85,9 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 readerDriver = null;
             }
         } catch (Exception e) {
-            // log.warn
             try {
-                throw new LeaderChangeException("leader changed!!! please rerun your statement!");
+                e.printStackTrace();
+                throw new LeaderChangeException("leader changed, please rerun your statement.");
             } catch (LeaderChangeException ex) {
                 ex.printStackTrace();
             }
@@ -126,13 +126,7 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
 
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
-                    /*
-                     * if changed leader, tx running in early leader should failed.
-                     * all the statement should rerun in new leader.
-                     */
                     hasWriteStatement = true;
-                    StatementResult res = null;
-
                     if (leaderDriver == null) {
                         Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
                                 , GraphDatabase.pandaAuthToken);
@@ -140,8 +134,7 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                         leaderDriver = driver;
                     }
                     cypherLogs.add(statement);
-                    res = leaderTx.run(statement);
-                    return res;
+                    return leaderTx.run(statement);
                 }
                 //read cypher
                 else {
@@ -171,20 +164,6 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     }
 
     //NOTE: pandadb
-    private void rerunWriteCypherInNewLeader(LinkedList<Statement> cyphers, String refreshLeaderUri) {
-        System.out.println("Start recover.............");
-        Driver driver = GraphDatabase.driver(refreshLeaderUri, GraphDatabase.pandaAuthToken);
-        Transaction tx = driver.session().beginTransaction();
-        GraphDatabase.isDispatcher = false;
-        while (cyphers.size() != 0) {
-            tx.run(cyphers.removeFirst());
-        }
-        tx.success();
-        tx.close();
-        driver.close();
-        System.out.println("Finish recover.............");
-    }
-
     class LeaderChangeException extends Exception {
         public LeaderChangeException(String message) {
             super(message);
