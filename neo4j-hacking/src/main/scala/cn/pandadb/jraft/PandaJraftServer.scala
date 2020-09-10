@@ -4,7 +4,7 @@ import java.io.{File, IOException}
 
 import scala.collection.JavaConverters._
 import cn.pandadb.config.PandaConfig
-import cn.pandadb.jraft.rpc.GetNeo4jBoltAddressRequestProcessor
+import cn.pandadb.jraft.rpc.{GetGraphDataStateRequestProcessor, GetNeo4jBoltAddressRequestProcessor}
 import cn.pandadb.server.{Logging, PandaRuntimeContext}
 import com.alipay.sofa.jraft.{Node, RaftGroupService}
 import com.alipay.sofa.jraft.conf.Configuration
@@ -16,8 +16,7 @@ import com.alipay.sofa.jraft.{JRaftUtils, RouteTable}
 import org.apache.commons.io.FileUtils
 import org.neo4j.graphdb.GraphDatabaseService
 
-class PandaJraftServer(neo4jDB: GraphDatabaseService,
-                       dataPath: String,
+class PandaJraftServer(dataPath: String,
                        groupId: String,
                        serverIdStr: String,
                        initConfStr: String) extends Logging {
@@ -26,13 +25,16 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
   private var node: Node = null
   private var fsm: PandaGraphStateMachine = null
 
+  @volatile
+  private var started = false
+
   // parse args
   val serverId: PeerId = new PeerId()
   if (!serverId.parse(serverIdStr)) throw new IllegalArgumentException("Fail to parse serverId:" + serverIdStr)
   val initConf = new Configuration()
   if (!initConf.parse(initConfStr)) throw new IllegalArgumentException("Fail to parse initConf:" + initConfStr)
 
-  def start(): Unit = {
+  def init(): Unit = {
     // init file directory
     FileUtils.forceMkdir(new File(dataPath))
 
@@ -41,19 +43,20 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     val rpcServer: RpcServer = RaftRpcServerFactory.createRaftRpcServer(serverId.getEndpoint)
     // add business RPC processor
     rpcServer.registerProcessor(new GetNeo4jBoltAddressRequestProcessor(this))
+    rpcServer.registerProcessor(new GetGraphDataStateRequestProcessor(this))
     // init state machine
-    this.fsm = new PandaGraphStateMachine(neo4jDB)
+    this.fsm = new PandaGraphStateMachine()
 
     // set NodeOption
     val nodeOptions = new NodeOptions
     // init configuration
     nodeOptions.setInitialConf(initConf)
     // set leader election timeout
-    nodeOptions.setElectionTimeoutMs(5000)
+    nodeOptions.setElectionTimeoutMs(2000)
     // dialbel CLI
     nodeOptions.setDisableCli(false)
     // set snapshot save period
-    nodeOptions.setSnapshotIntervalSecs(getSnapshotTime())
+    nodeOptions.setSnapshotIntervalSecs(snapshotIntervalSecs())
     // set state machine args
     nodeOptions.setFsm(this.fsm)
     // set log save path (required)
@@ -64,14 +67,23 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     if (useSnapshot()) nodeOptions.setSnapshotUri(dataPath + File.separator + "snapshot")
     // init raft group
     this.raftGroupService = new RaftGroupService(groupId, serverId, nodeOptions, rpcServer)
+  }
 
+  def start(): Unit = {
+    if (this.raftGroupService == null) {
+      this.init()
+    }
     this.node = this.raftGroupService.start
+    this.started = true
     logger.info("Started PandaJraftServer at port:" + this.node.getNodeId.getPeerId.getPort)
   }
 
   def shutdown(): Unit = {
     this.node.shutdown()
+    this.started = false
   }
+
+  def isStarted(): Boolean = this.started
 
   def getFsm: PandaGraphStateMachine = this.fsm
 
@@ -93,9 +105,9 @@ class PandaJraftServer(neo4jDB: GraphDatabaseService,
     pandaConfig.useSnapshot
   }
 
-  def getSnapshotTime(): Int = {
+  def snapshotIntervalSecs(): Int = {
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
-    pandaConfig.snapshotTime
+    pandaConfig.snapshotIntervalSecs
   }
 
   def getPeers(): Set[PeerId] = {

@@ -21,7 +21,7 @@ import cn.pandadb.jraft.snapshot.{LogIndexFile, PandaGraphSnapshotFile}
 import cn.pandadb.server.{Logging, PandaRuntimeContext}
 
 
-class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMachineAdapter with Logging{
+class PandaGraphStateMachine() extends StateMachineAdapter with Logging{
 
   /**
     * Leader term
@@ -37,7 +37,16 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
   }
 
   override def onApply(iter: SofaIterator): Unit = {
-    var logIndex: Int = logIndexFile.load()
+    PandaRuntimeContext.setSnapshotLoaded(true)
+    while (PandaRuntimeContext.contextGetOption[GraphDatabaseService]().isEmpty) {
+      logger.info("wait for GraphDatabaseService created")
+      Thread.sleep(500)
+    }
+    val neo4jDB = PandaRuntimeContext.contextGet[GraphDatabaseService]()
+    while (!neo4jDB.isAvailable(1000)) {
+      logger.info("wait for GraphDatabaseService available")
+    }
+    var logIndex: Long = logIndexFile.load()
     while ( iter.hasNext()) {
       var writeOperations: WriteOperations = null
       // leader not apply task
@@ -60,6 +69,7 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     if (logIndexNew > logIndex) logIndex = logIndexNew
     logIndexFile.save(logIndex)
   }
+
   def getDataPath(): String = {
     val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
     pandaConfig.dataPath
@@ -98,23 +108,24 @@ class PandaGraphStateMachine(val neo4jDB: GraphDatabaseService) extends StateMac
     val snap = new PandaGraphSnapshotFile
     val loadDirectory = new File(reader.getPath)
     val dataPath = Paths.get(getDataPath(), "databases").toString
+    var ret = false
     if (loadDirectory.isDirectory) {
       val files = loadDirectory.listFiles()
       if (files.length == 0) {
         logger.error("snapshot file is not existed.")
-        return false
       }
       else {
         files.foreach(f => {
           if (f.getName.endsWith("zip")) snap.load(f.getAbsolutePath, dataPath)
         })
-        return true
+        ret = true
       }
     }
     else {
       logger.error("snapshot file save directory is not existed.")
-      return false
     }
+    PandaRuntimeContext.setSnapshotLoaded(true)
+    ret
   }
 
   override def onLeaderStart(term: Long): Unit = {

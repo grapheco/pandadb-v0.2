@@ -1,6 +1,7 @@
 package cn.pandadb.jraft
 
 import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicBoolean
 
 import cn.pandadb.config.PandaConfig
 import cn.pandadb.jraft.operations.WriteOperations
@@ -12,7 +13,7 @@ import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.kernel.lifecycle.Lifecycle
 
 
-class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle with Logging {
+class PandaJraftService extends Lifecycle with Logging {
   var jraftServer: PandaJraftServer = null
   val pandaConfig: PandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
 
@@ -39,15 +40,20 @@ class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle with Lo
   }
 
   override def init(): Unit = {
-    val dataPath: String = pandaConfig.jraftDataPath
-    val serverId: String = pandaConfig.jraftServerId
-    val groupId: String = pandaConfig.jraftGroupId
-    val peers: String = pandaConfig.jraftPeerIds
-    jraftServer = new PandaJraftServer(neo4jDB, dataPath, groupId, serverId, peers)
+    if (jraftServer == null) {
+      val dataPath: String = pandaConfig.jraftDataPath
+      val serverId: String = pandaConfig.jraftServerId
+      val groupId: String = pandaConfig.jraftGroupId
+      val peers: String = pandaConfig.jraftPeerIds
+      jraftServer = new PandaJraftServer(dataPath, groupId, serverId, peers)
+    }
     logger.info("==== jraft server init ====")
   }
 
   override def start(): Unit = {
+    if (jraftServer == null) {
+      init()
+    }
     jraftServer.start()
     logger.info("==== jraft server started ====")
   }
@@ -68,5 +74,17 @@ class PandaJraftService(neo4jDB: GraphDatabaseService) extends Lifecycle with Lo
 
   def getLeader(): PeerId = {
     jraftServer.getLeader()
+  }
+
+  def isStarted(): Boolean = {
+    jraftServer!=null && jraftServer.isStarted()
+  }
+
+  def appliedTxLogIndex(): Long = {
+    if (jraftServer!=null) {
+      jraftServer.getFsm.logIndexFile.load()
+    } else {
+      -1
+    }
   }
 }

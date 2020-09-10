@@ -1,9 +1,14 @@
 package cn.pandadb.server
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import scala.collection.mutable.{Map => MMap}
 
 object PandaRuntimeContext {
   private val _map = MMap[String, Any]();
+
+  @volatile
+  private var _snapshotLoaded: Boolean = false
 
   def contextPut[T](key: String, value: T): T = {
     _map(key) = value
@@ -27,4 +32,10 @@ object PandaRuntimeContext {
   def clear(): Unit = {
     _map.clear()
   }
+
+  def setSnapshotLoaded(loaded: Boolean): Unit = {
+    _snapshotLoaded = loaded
+  }
+
+  def getSnaphotLoaded(): Boolean = _snapshotLoaded
 }

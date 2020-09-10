@@ -25,10 +25,7 @@ import java.util.function.Function;
 
 import org.neo4j.bolt.BoltServer;
 import org.neo4j.dbms.database.DatabaseManager;
-import org.neo4j.graphdb.DependencyResolver;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.facade.extension.ExtendedDatabaseLifecyclePluginsService;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.internal.DataCollectorManager;
@@ -230,10 +227,17 @@ public class GraphDatabaseFacadeFactory
                 () -> new IllegalStateException( String.format( "Database %s not found. Please check the logs for startup errors.", activeDatabase ) ) );
 
         // NOTE: pandadb [neo4jServerAddJraftService]
-        PandaConfig pandaConfig = new PandaConfig(config);
-        PandaRuntimeContext.contextPut(pandaConfig.getClass().getName(), pandaConfig);
+        if (PandaRuntimeContext.contextGetOption(PandaConfig.class.getName()).isEmpty()) {
+            PandaRuntimeContext.contextPut(PandaConfig.class.getName(), new PandaConfig(config));
+        }
+        PandaConfig pandaConfig = PandaRuntimeContext.contextGet(PandaConfig.class.getName());
         if (pandaConfig.useJraft()) {
-            platform.life.add(createPandaJraftService(databaseFacade));
+            PandaRuntimeContext.contextPut(GraphDatabaseService.class.getName(), graphDatabaseFacade);
+            if (PandaRuntimeContext.contextGetOption(PandaJraftService.class.getName()).isEmpty()) {
+                platform.life.add(createPandaJraftService(databaseFacade));
+            } else {
+                platform.life.add(PandaRuntimeContext.contextGet(PandaJraftService.class.getName()));
+            }
         }
         if (pandaConfig.useCoStorage()) {
             try {
@@ -348,7 +352,7 @@ public class GraphDatabaseFacadeFactory
 
     // NOTE: pandadb [neo4jServerAddJraftService]
     private static PandaJraftService createPandaJraftService(GraphDatabaseFacade db) {
-        PandaJraftService jraftService = new PandaJraftService(db);
+        PandaJraftService jraftService = new PandaJraftService();
         return jraftService;
     }
     // END-NOTE: pandadb
