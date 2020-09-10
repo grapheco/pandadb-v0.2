@@ -11,19 +11,28 @@ class MultiNodeTest {
   @Before
   def delDirectory(): Unit = {
     val path = Paths.get(pathsr)
-    delDir(path.toFile)
+    val file = path.toFile
+    if (file.exists()) delDir(path.toFile)
+
   }
   @After
   def removeDir(): Unit = {
+    Thread.sleep(5000)
     val path = Paths.get(pathsr)
     delDir(path.toFile)
   }
 
   def delDir(dir: File): Unit = {
     dir.listFiles().foreach(file => {
-      if (file.isDirectory) delDir(file)
-      else file.delete()
+      if (file.isDirectory) {
+        delDir(file)
+      }
+      else {
+        //println(file.getName)
+        file.delete()
+      }
     })
+    dir.delete()
   }
   @Test
   def tesSingleNode(): Unit = {

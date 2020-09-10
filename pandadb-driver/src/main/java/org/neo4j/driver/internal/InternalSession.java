@@ -135,7 +135,7 @@ public class InternalSession extends AbstractStatementRunner implements Session 
                     // TODO: chosen node offline?
                     Driver driver;
                     Session session;
-                    String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds());
+                    String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), true);
                     if (driverMap.containsKey(readerUri)) {
                         session = sessionMap.get(readerUri);
                     } else {

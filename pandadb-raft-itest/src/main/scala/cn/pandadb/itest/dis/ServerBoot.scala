@@ -58,12 +58,71 @@ object GetCmdLine {
   }
 
 }
-
+class NodeInfo(conFile: String, dbPath: String, dbFileName: String) {
+  var id: Int = _
+  var process: Process = null
+  var isStart: Boolean = false
+  def getConFile(): String = {
+    this.conFile
+  }
+  def getdbPath(): String = {
+    this.dbPath
+  }
+  def getdbFileName(): String = {
+    this.dbFileName
+  }
+  def setId(ids: Int): Unit = {
+    this.id = ids
+  }
+  def setProcess(p: Process): Unit = {
+    this.process = p
+  }
+  def setStart(): Unit = {
+    this.isStart = true
+  }
+  def setStop(): Unit = {
+    this.isStart = false
+    this.process = null
+  }
+}
 
 class ServerBootStrap() {
   val cmdStr: String = GetCmdLine.loadResult()
   var nodeId: Int = 0
   var nodeProcessMap = mutable.Map[Int, Process]()
+
+  def startNode(nodeInfo: NodeInfo): NodeInfo = {
+    val id: Int = getId()
+    var tempP: Process = null
+    val thread = new Thread(new Runnable {
+      override def run(): Unit = {
+        val p = runServer(nodeInfo.getConFile(), nodeInfo.getdbPath(), nodeInfo.getdbFileName())
+        tempP = p
+
+        //nodeProcessMap  += id -> p
+        val stdout = new BufferedReader(new InputStreamReader(p.getInputStream()))
+
+        var line: String = null
+        while ((line = stdout.readLine()) != null && p.isAlive) {
+          //Thread.sleep(1000)
+          println(line)
+        }
+        println(s"server ${id} has stoped!!!!")
+      }
+    })
+    thread.start()
+    while (tempP == null) {
+      Thread.sleep(500)
+
+    }
+    nodeProcessMap  += id -> tempP
+    nodeInfo.setId(id)
+    nodeInfo.setProcess(tempP)
+    nodeInfo.setStart()
+    //while(thread.getState ==Thread.State.RUNNABLE)
+    //println(nodeProcessMap.size)
+    nodeInfo
+  }
 
   def startNode(conFile: String, dbPath: String, dbFileName: String): Int = {
     val id: Int = getId()
@@ -110,7 +169,19 @@ class ServerBootStrap() {
     }
     else true
   }
-
+  def stopNode(nodeInfo: NodeInfo): Boolean = {
+    val p = nodeProcessMap.get(nodeInfo.id).get
+    if (p != None) {
+      p.destroy()
+      nodeInfo.setStop()
+      nodeProcessMap.remove(nodeInfo.id)
+      println("==*****stop Node*****==")
+      println(s"==*****node id is ${nodeInfo.id}*****==")
+      println("==*****stop Node*****==")
+      p.isAlive
+    }
+    else true
+  }
   def randomStopNode(): Int = {
     var retId: Int = 0
     if (nodeProcessMap.size <= 0) {
