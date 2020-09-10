@@ -36,8 +36,8 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     //NOTE: pandadb
     private Session leaderSession = null;
     private Driver leaderDriver = null;
-    public Map<String, Driver> driverMap = new HashMap<>();
-    public Map<String, Session> sessionMap = new HashMap<>();
+    private Session readerSession = null;
+    private Driver readerDriver = null;
 
     private static final PandaUtils utils = new PandaUtils();
     //END_NOTE: pandadb
@@ -92,59 +92,24 @@ public class InternalSession extends AbstractStatementRunner implements Session 
                 GraphDatabase.isDispatcher = false;
                 String cypher = statement.text();
 
-                // send HelloMessage to update cluster's state.
-                String savedLeaderUri = utils.getLeaderUri(GraphDatabase.getLeaderId());
-                //TODO: node shutdown, this will be failed.
-                GraphDatabase.driver(savedLeaderUri, GraphDatabase.pandaAuthToken).close();
-                String refreshLeaderUri = utils.getLeaderUri(GraphDatabase.getLeaderId());
-
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
-                    /*
-                     * if changed leader, tx running in early leader should failed.
-                     * all the statement should rerun in new leader.
-                     */
-                    if (!savedLeaderUri.equals(refreshLeaderUri)) {
-                        Driver driver = GraphDatabase.driver(refreshLeaderUri, GraphDatabase.pandaAuthToken);
-                        if (leaderDriver != null) {
-                            leaderSession.close();
-                            leaderDriver.close();
-                        }
-                        leaderDriver = driver;
+                    if (leaderDriver == null) {
+                        Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
+                                , GraphDatabase.pandaAuthToken);
                         leaderSession = driver.session();
-                        driverMap.remove(savedLeaderUri);
-                        sessionMap.remove(savedLeaderUri);
-                        sessionMap.put(refreshLeaderUri, leaderSession);
-                        driverMap.put(refreshLeaderUri, driver);
-                    }
-                    //leader not change
-                    else {
-                        if (leaderDriver == null) {
-                            Driver driver = GraphDatabase.driver(refreshLeaderUri, GraphDatabase.pandaAuthToken);
-                            leaderSession = driver.session();
-                            leaderDriver = driver;
-
-                            sessionMap.put(refreshLeaderUri, leaderSession);
-                            driverMap.put(refreshLeaderUri, driver);
-                        }
+                        leaderDriver = driver;
                     }
                     return leaderSession.run(statement);
                 }
                 //read cypher
                 else {
-                    // TODO: chosen node offline?
-                    Driver driver;
-                    Session session;
-                    String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), true);
-                    if (driverMap.containsKey(readerUri)) {
-                        session = sessionMap.get(readerUri);
-                    } else {
-                        driver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
-                        session = driver.session();
-                        driverMap.put(readerUri, driver);
-                        sessionMap.put(readerUri, session);
+                    String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
+                    if (readerDriver == null) {
+                        readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
+                        readerSession = readerDriver.session();
                     }
-                    return session.run(statement);
+                    return readerSession.run(statement);
                 }
             }
         }
@@ -159,16 +124,14 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     @Override
     public void close() {
         //NOTE: pandadb
-        if (!sessionMap.isEmpty()) {
-            sessionMap.values().forEach(Session::close);
-            sessionMap.clear();
+        if (leaderDriver != null) {
+            leaderSession.close();
+            leaderDriver.close();
         }
-        if (!driverMap.isEmpty()) {
-            driverMap.values().forEach(Driver::close);
-            driverMap.clear();
+        if (readerDriver != null) {
+            readerSession.close();
+            readerDriver.close();
         }
-        leaderSession = null;
-        leaderDriver = null;
         //END_NOTE: pandadb
 
         Futures.blockingGet(session.closeAsync(), () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the session"));
