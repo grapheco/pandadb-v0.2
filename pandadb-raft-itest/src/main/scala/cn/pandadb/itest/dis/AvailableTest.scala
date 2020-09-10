@@ -86,7 +86,7 @@ class Destroy(sp: ServerBootStrap, nodeInfoArray: Array[NodeInfo]) {
 }
 class AvailableTest {
 
-  final val pathsr = "F:\\IdCode\\pandadb-v0.2\\pandadb-raft-itest\\testoutput"
+  final val pathsr = "./testoutput"
 
   @Before
   def beforeTest(): Unit = {
@@ -136,11 +136,12 @@ class AvailableTest {
     val des = new Destroy(sp, nodesInfo)
     Thread.sleep(10000)
 
-    val pstr = s"panda://127.0.0.1:8081"
+    val pstr = s"bolt://127.0.0.1:7620"
     val tc = new TCase(pstr)
     try {
       tc.startTest()
       des.startDestroy()
+      //      Thread.sleep(1000)
       //tc.blobTxTest()
       //tc.createBlobTest()
       tc.createCypherTest()
@@ -148,7 +149,7 @@ class AvailableTest {
       // tc.cypherPlusTest()
       //tc.deleteBlobTest()
       //tc.deletePropertyTest()
-      //tc.relationshipTest()
+      tc.relationshipTest()
       //tc.updateCypherTest()
       tc.stopTest()
     }

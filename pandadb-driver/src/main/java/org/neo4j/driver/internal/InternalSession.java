@@ -34,10 +34,11 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     private final NetworkSession session;
 
     //NOTE: pandadb
-    private Session leaderSession = null;
-    private Driver leaderDriver = null;
-    private Session readerSession = null;
-    private Driver readerDriver = null;
+    public static Session leaderSession = null;
+    public static Driver leaderDriver = null;
+    public static boolean internalSessionIsUsed = false;
+    public Session readerSession = null;
+    public Driver readerDriver = null;
 
     private static final PandaUtils utils = new PandaUtils();
     //END_NOTE: pandadb
@@ -125,7 +126,6 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     public void close() {
         //NOTE: pandadb
         if (leaderDriver != null) {
-            leaderSession.close();
             leaderDriver.close();
         }
         if (readerDriver != null) {

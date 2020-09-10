@@ -23,6 +23,7 @@ import org.neo4j.driver.*;
 import org.neo4j.driver.async.StatementResultCursor;
 import org.neo4j.driver.internal.async.ExplicitTransaction;
 import org.neo4j.driver.internal.util.Futures;
+import scala.Int;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -35,13 +36,10 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
      * Call session.beginTransaction() will new an InternalTransaction.
      */
     private boolean hasWriteStatement = false;
-
     private Transaction leaderTx = null;
     private Driver leaderDriver = null;
     private Transaction readerTx = null;
     private Driver readerDriver = null;
-
-    public LinkedList<Statement> cypherLogs = new LinkedList<>();
 
     private static final PandaUtils utils = new PandaUtils();
     // END_NOTE: pandadb
@@ -127,18 +125,25 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
                     hasWriteStatement = true;
-                    if (leaderDriver == null) {
-                        Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
-                                , GraphDatabase.pandaAuthToken);
-                        leaderTx = driver.session().beginTransaction();
-                        leaderDriver = driver;
+                    if (InternalSession.leaderDriver == null) {
+                        if (leaderDriver == null) {
+                            Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
+                                    , GraphDatabase.pandaAuthToken);
+                            leaderTx = driver.session().beginTransaction();
+                            leaderDriver = driver;
+                        }
+                        return leaderTx.run(statement);
+                    } else {
+                        if (leaderTx == null) {
+                            leaderTx = InternalSession.leaderSession.beginTransaction();
+                            leaderDriver = InternalSession.leaderDriver;
+                            InternalSession.internalSessionIsUsed = true;
+                        }
+                        return leaderTx.run(statement);
                     }
-                    cypherLogs.add(statement);
-                    return leaderTx.run(statement);
                 }
                 //read cypher
                 else {
-                    cypherLogs.add(statement);
                     if (hasWriteStatement) {
                         return leaderTx.run(statement);
                     }
