@@ -8,7 +8,7 @@ import scala.collection.{AbstractIterator, mutable}
 import scala.collection.mutable.ArrayBuffer
 import org.neo4j.values.storable._
 import org.neo4j.cypher.internal.runtime.interpreted._
-import cn.pandadb.costore.util.{Configuration, PandaModuleContext}
+import cn.pandadb.costore.util.{Configuration, Logging, PandaModuleContext}
 import com.alibaba.fastjson.JSONObject
 import org.apache.http.HttpHost
 import org.apache.http.client.config.RequestConfig
@@ -30,6 +30,7 @@ import org.elasticsearch.index.reindex.{BulkByScrollResponse, DeleteByQueryReque
 import org.elasticsearch.action.support.WriteRequest
 import org.elasticsearch.common.unit.{TimeValue => EsTimeValue}
 import org.elasticsearch.search.{Scroll, SearchHit}
+
 import scala.util.control.Breaks._
 
 
@@ -39,7 +40,7 @@ class InElasticSearchPropertyNodeStoreFactory extends ExternalPropertyStoreFacto
   }
 }
 
-object EsUtil {
+object EsUtil extends Logging{
   val idName = "id"
   val labelName = "labels"
   val tik = "id,labels,_version_"
@@ -127,6 +128,8 @@ object EsUtil {
           break
         } catch {
           case e: java.net.ConnectException =>
+            logger.error(e.toString)
+            logger.error("costore is unreachable: wait for 5s ")
             Thread.sleep(5000)
         }
       } while (true)
