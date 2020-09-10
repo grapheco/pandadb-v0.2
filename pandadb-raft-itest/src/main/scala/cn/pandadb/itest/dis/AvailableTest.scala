@@ -56,7 +56,10 @@ class Destroy(sp: ServerBootStrap, nodeInfoArray: Array[NodeInfo]) {
       override def run(): Unit = {
         while (!exit) {
           Thread.sleep(5000)
-          if (nodeInfoArray.map(_.isStart).reduce(_&_)) stopOneNode
+          if (nodeInfoArray.map(_.isStart).reduce(_&_)) {
+            println("start destroy !!!!!")
+            stopOneNode
+          }
           else {
             startOneNode()
           }
