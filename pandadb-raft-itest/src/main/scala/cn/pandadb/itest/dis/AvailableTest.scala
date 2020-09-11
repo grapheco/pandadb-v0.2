@@ -168,4 +168,38 @@ class AvailableTest {
     des.stopDestroy()
     sp.stopAllnodes()
   }
+
+  @Test
+  def testDt(): Unit = {
+    val sp = new ServerBootStrap
+    //sp.startThreeNodes()
+    val nodesInfo = startThreeNodes(sp)
+    val des = new Destroy(sp, nodesInfo)
+    Thread.sleep(10000)
+
+    val pstr = s"bolt://127.0.0.1:7620"
+    val tc = new DTTestCase(pstr)
+    try {
+      //tc.startTest()
+      //des.startDestroy()
+      tc.testSession()
+      tc.testSessionWithTransactionSituation()
+      tc.testTransaction()
+      tc.stopTest
+    }
+    catch {
+      case e: Exception => {
+        println(e.getMessage)
+        println("hhhhhhhhhhhhhhhhhhhhhhhhh")
+        println("hhhhhhhhhhhhhhhhhhhhhhhhh")
+        println("hhhhhhhhhhhhhhhhhhhhhhhhh")
+        Thread.sleep(5000)
+        des.stopDestroy()
+        sp.stopAllnodes()
+      }
+    }
+    Thread.sleep(5000)
+    des.stopDestroy()
+    sp.stopAllnodes()
+  }
 }

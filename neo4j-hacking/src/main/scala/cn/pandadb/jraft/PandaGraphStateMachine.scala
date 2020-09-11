@@ -84,9 +84,12 @@ class PandaGraphStateMachine() extends StateMachineAdapter with Logging{
     val snap = new PandaGraphSnapshotFile
     Utils.runInThread(new Runnable {
       override def run(): Unit = {
-        val dataPath = Paths.get(getDataPath(), "databases" + File.separator + getActiveDatabase).toString
-        snap.save(dataPath, writer.getPath)
-        if (writer.addFile("backup.zip")) done.run(Status.OK())
+        val dataPathFile = Paths.get(getDataPath(), "databases" + File.separator + getActiveDatabase).toFile
+        if (dataPathFile.exists()) {
+          val dataPath = dataPathFile.getAbsoluteFile.toString
+          snap.save(dataPath, writer.getPath)
+          if (writer.addFile("backup.zip")) done.run(Status.OK())
+        }
       }
     })
   }
