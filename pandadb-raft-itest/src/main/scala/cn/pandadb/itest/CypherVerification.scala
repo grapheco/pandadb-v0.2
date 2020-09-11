@@ -3,9 +3,9 @@ package cn.pandadb.itest
 import java.io.{File, FileInputStream}
 import java.net.URL
 
-import cn.pandadb.driver.v2.PandaDriver
 import org.apache.commons.io.{FileUtils, IOUtils}
 import org.junit.{After, Assert, Before, Test}
+import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase}
 import org.neo4j.server.CommunityBootstrapper
 
 import scala.collection.JavaConverters._
@@ -13,17 +13,17 @@ import scala.collection.JavaConverters._
 class CypherVerification {
   val pandaString2 = s"bolt://10.0.82.217:8076"
 //  val pandaString2 = s"bolt://10.0.82.220:7687"
-  var driver: PandaDriver = _
+  var driver: Driver = _
   var neo4jServer1: CommunityBootstrapper = _
 
   @Before
   def init(): Unit = {
-    driver = new PandaDriver(pandaString2, "neo4j", "bigdata")
+    driver = GraphDatabase.driver(pandaString2, AuthTokens.basic("neo4j", "neo4j"))
   }
 
   @Test
   def creation(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("CREATE (n:Person {age: 10, name: 'bob', address: 'CNIC, CAS, Beijing, China'})")
     tx.run("CREATE (n:Person {age: 10, name: 'bob2', address: 'CNIC, CAS, Beijing, China'})")
@@ -45,7 +45,7 @@ class CypherVerification {
 
   @Test
   def merge(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("MERGE (user:User { Id: 456 })")
     tx.success()
@@ -60,7 +60,7 @@ class CypherVerification {
 
   @Test
   def setProperty(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("MERGE (user:User { Id: 456 }) ON CREATE SET user.Name = 'Jim'")
     tx.success()
@@ -75,7 +75,7 @@ class CypherVerification {
 
   @Test
   def removeProperty(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("MERGE (user:User { Id: 456 }) ON CREATE SET user.Name = 'Jim'")
     tx.success()
@@ -91,7 +91,7 @@ class CypherVerification {
 
   @Test
   def delete(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("MERGE (user:User { Id: 456 }) ON CREATE SET user.Name = 'Jim'")
     tx.run("MATCH (user:User) WHERE user.Id = 456 DELETE user")
@@ -107,7 +107,7 @@ class CypherVerification {
   //ask Hipro if need pointType
   @Test
   def pointType(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("CREATE (n:Person {loc: point({ x:3, y:4 }), salary: 40.5, name: 'blue', isLeader: true, address: 'CNIC, CAS, Beijing, China'})")
     tx.success()
@@ -123,7 +123,7 @@ class CypherVerification {
 
   @Test
   def listType(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("CREATE (n:Test {check: [1997,2003,2003,2000,1999,2003,1995], name: 'blue'})")
     tx.run("match (n:Test) WHERE n.check = [1997,2003,2003,2000,1999,2003,1995] AND n.name = 'blue' return count(n)")
@@ -134,7 +134,7 @@ class CypherVerification {
 
   @Test
   def dateType(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("CREATE (n:Person {birthday: datetime('1975-06-24T12:50:35.556+0100'), salary: 40.5, name: 'blue', isLeader: true, address: 'CNIC, CAS, Beijing, China'})")
     tx.run("match (n:Person) WHERE n.birthday = datetime('1975-06-24T12:50:35.556+0100') AND n.salary = 40.5 return count(n)")
@@ -151,7 +151,7 @@ class CypherVerification {
   //need support schemaless. Ask HiPro to check if schemaless must support
   @Test
   def costore(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run(
       """CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})
@@ -194,7 +194,7 @@ class CypherVerification {
 
   @Test
   def createBlob(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     val res = tx.run("create (n:aaa{name:'test_blob', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
 
@@ -210,7 +210,7 @@ class CypherVerification {
 
   @Test
   def deleteBlob(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("create (n:delete_blob{name:'test_blob', blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n")
     tx.success()
@@ -227,7 +227,7 @@ class CypherVerification {
 
   @Test
   def cypherPlusTest(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     val blob1 = tx.run("return <https://www.baidu.com/img/flexible/logo/pc/result.png> as r").next().get("r").asBlob()
 
@@ -285,7 +285,7 @@ class CypherVerification {
 
   @Test
   def esError(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run(
       """CREATE (TheMatrix:Movie {title:'The Matrix', released:1999, tagline:'Welcome to the Real World'})
@@ -331,7 +331,7 @@ class CypherVerification {
 
   @Test
   def cypherPlusError(): Unit = {
-    val session = driver.readSession()
+    val session = driver.session()
     val basedir = new File("../hbase-blob-storage/testinput/ai").getCanonicalFile.getAbsolutePath
 
     val tx = session.beginTransaction()
@@ -350,7 +350,7 @@ class CypherVerification {
 
   @Test
   def blobTxTest(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("create (n:bbb{name:'test_blob', age:10, blob:<https://www.baidu.com/img/flexible/logo/pc/result.png>}) return n").next().get(0).asEntity()
     val res2 = tx.run("match (n:bbb) where n.name='test_blob' remove n.blob return n ").next().get(0).asEntity()

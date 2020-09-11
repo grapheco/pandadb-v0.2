@@ -8,7 +8,6 @@ import java.util
 import java.util.Optional
 
 import cn.pandadb.config.PandaConfig
-import cn.pandadb.driver.v2.PandaDriver
 import cn.pandadb.jraft.PandaJraftService
 import cn.pandadb.server.PandaRuntimeContext
 import org.apache.commons.io.{FileUtils, IOUtils}
