@@ -137,7 +137,6 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                         if (leaderTx == null) {
                             leaderTx = InternalSession.leaderSession.beginTransaction();
                             leaderDriver = InternalSession.leaderDriver;
-                            InternalSession.internalSessionIsUsed = true;
                         }
                         return leaderTx.run(statement);
                     }

@@ -36,7 +36,7 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     //NOTE: pandadb
     public static Session leaderSession = null;
     public static Driver leaderDriver = null;
-    public static boolean internalSessionIsUsed = false;
+    private boolean hasWriteStatement = false;
     public Session readerSession = null;
     public Driver readerDriver = null;
 
@@ -95,6 +95,7 @@ public class InternalSession extends AbstractStatementRunner implements Session 
 
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
+                    hasWriteStatement = true;
                     if (leaderDriver == null) {
                         Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
                                 , GraphDatabase.pandaAuthToken);
@@ -105,6 +106,9 @@ public class InternalSession extends AbstractStatementRunner implements Session 
                 }
                 //read cypher
                 else {
+                    if (hasWriteStatement) {
+                        return leaderSession.run(statement);
+                    }
                     String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
                     if (readerDriver == null) {
                         readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
@@ -127,10 +131,13 @@ public class InternalSession extends AbstractStatementRunner implements Session 
         //NOTE: pandadb
         if (leaderDriver != null) {
             leaderDriver.close();
+            leaderSession = null;
+            leaderDriver = null;
         }
         if (readerDriver != null) {
-            readerSession.close();
             readerDriver.close();
+            readerSession = null;
+            readerDriver = null;
         }
         //END_NOTE: pandadb
 
