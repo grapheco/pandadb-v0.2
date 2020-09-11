@@ -34,10 +34,11 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     private final NetworkSession session;
 
     //NOTE: pandadb
-    private Session leaderSession = null;
-    private Driver leaderDriver = null;
-    private Session readerSession = null;
-    private Driver readerDriver = null;
+    public static Session leaderSession = null;
+    public static Driver leaderDriver = null;
+    private boolean hasWriteStatement = false;
+    public Session readerSession = null;
+    public Driver readerDriver = null;
 
     private static final PandaUtils utils = new PandaUtils();
     //END_NOTE: pandadb
@@ -64,11 +65,6 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     @Override
     public StatementResult run(Statement statement, TransactionConfig config) {
         //NOTE: pandadb
-        /*
-         * If use jraft, parse user's statement and dispatch to leader or reader.
-         * No jraft, do as original.
-         * return the statementResult
-         */
         boolean useJraft = GraphDatabase.isUseJraft();
         if (!useJraft) {
             StatementResultCursor cursor = Futures.blockingGet(session.runAsync(statement, config, false),
@@ -94,6 +90,7 @@ public class InternalSession extends AbstractStatementRunner implements Session 
 
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
+                    hasWriteStatement = true;
                     if (leaderDriver == null) {
                         Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
                                 , GraphDatabase.pandaAuthToken);
@@ -104,6 +101,9 @@ public class InternalSession extends AbstractStatementRunner implements Session 
                 }
                 //read cypher
                 else {
+                    if (hasWriteStatement) {
+                        return leaderSession.run(statement);
+                    }
                     String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
                     if (readerDriver == null) {
                         readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
@@ -125,12 +125,14 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     public void close() {
         //NOTE: pandadb
         if (leaderDriver != null) {
-            leaderSession.close();
             leaderDriver.close();
+            leaderSession = null;
+            leaderDriver = null;
         }
         if (readerDriver != null) {
-            readerSession.close();
             readerDriver.close();
+            readerSession = null;
+            readerDriver = null;
         }
         //END_NOTE: pandadb
 

@@ -23,6 +23,7 @@ import org.neo4j.driver.*;
 import org.neo4j.driver.async.StatementResultCursor;
 import org.neo4j.driver.internal.async.ExplicitTransaction;
 import org.neo4j.driver.internal.util.Futures;
+import scala.Int;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -31,17 +32,11 @@ import java.util.Map;
 public class InternalTransaction extends AbstractStatementRunner implements Transaction {
     private final ExplicitTransaction tx;
     // NOTE: pandadb
-    /*
-     * Call session.beginTransaction() will new an InternalTransaction.
-     */
     private boolean hasWriteStatement = false;
-
     private Transaction leaderTx = null;
     private Driver leaderDriver = null;
     private Transaction readerTx = null;
     private Driver readerDriver = null;
-
-    public LinkedList<Statement> cypherLogs = new LinkedList<>();
 
     private static final PandaUtils utils = new PandaUtils();
     // END_NOTE: pandadb
@@ -85,15 +80,9 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 readerDriver = null;
             }
         } catch (Exception e) {
-            try {
-                e.printStackTrace();
-                throw new LeaderChangeException("leader changed, please rerun your statement.");
-            } catch (LeaderChangeException ex) {
-                ex.printStackTrace();
-            }
+            e.printStackTrace();
             System.exit(1);
         }
-
         // END_NOTE: pandadb
         Futures.blockingGet(tx.closeAsync(),
                 () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the transaction"));
@@ -127,18 +116,24 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
                     hasWriteStatement = true;
-                    if (leaderDriver == null) {
-                        Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
-                                , GraphDatabase.pandaAuthToken);
-                        leaderTx = driver.session().beginTransaction();
-                        leaderDriver = driver;
+                    if (InternalSession.leaderDriver == null) {
+                        if (leaderDriver == null) {
+                            Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
+                                    , GraphDatabase.pandaAuthToken);
+                            leaderTx = driver.session().beginTransaction();
+                            leaderDriver = driver;
+                        }
+                        return leaderTx.run(statement);
+                    } else {
+                        if (leaderTx == null) {
+                            leaderTx = InternalSession.leaderSession.beginTransaction();
+                            leaderDriver = InternalSession.leaderDriver;
+                        }
+                        return leaderTx.run(statement);
                     }
-                    cypherLogs.add(statement);
-                    return leaderTx.run(statement);
                 }
                 //read cypher
                 else {
-                    cypherLogs.add(statement);
                     if (hasWriteStatement) {
                         return leaderTx.run(statement);
                     }
@@ -162,12 +157,4 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     private void terminateConnectionOnThreadInterrupt(String reason) {
         tx.connection().terminateAndRelease(reason);
     }
-
-    //NOTE: pandadb
-    class LeaderChangeException extends Exception {
-        public LeaderChangeException(String message) {
-            super(message);
-        }
-    }
-    //END_NOTE: pandadb
 }
