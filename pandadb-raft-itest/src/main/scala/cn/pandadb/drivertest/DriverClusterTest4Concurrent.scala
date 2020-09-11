@@ -18,7 +18,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 // make sure all the jraft.enabled = true
-class DriverTest4Concurrent {
+class DriverClusterTest4Concurrent {
   val pandaString = s"bolt://127.0.0.1:7610"
   val drivers = ArrayBuffer[Driver]()
   val driverNumber = 10

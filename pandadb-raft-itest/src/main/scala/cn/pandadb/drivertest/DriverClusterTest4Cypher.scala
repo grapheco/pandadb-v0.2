@@ -20,7 +20,6 @@ class DriverClusterTest4Cypher {
 
   @Before
   def init(): Unit = {
-
     if (new File("./testoutput").exists()) {
       FileUtils.deleteDirectory(new File("./testoutput"))
     }
