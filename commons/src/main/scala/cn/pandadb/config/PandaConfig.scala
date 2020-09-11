@@ -26,7 +26,7 @@ object SettingKeys {
 
 class PandaConfig(config: Config) {
   def useSnapshot: Boolean = config.getRaw(SettingKeys.useSnapshot).orElse("false").toBoolean
-  def snapshotIntervalSecs: Int = config.getRaw(SettingKeys.snapshotIntervalSecs).orElse("60").toInt
+  def snapshotIntervalSecs: Int = config.getRaw(SettingKeys.snapshotIntervalSecs).orElse("3600").toInt
   def bolt: String = config.getRaw(SettingKeys.bolt).get()
   def jraftServerId: String = config.getRaw(SettingKeys.jraftServerId).get()
   def jraftGroupId: String = config.getRaw(SettingKeys.jraftGroupId).get()
