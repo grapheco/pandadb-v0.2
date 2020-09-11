@@ -358,6 +358,7 @@ class DriverClusterTest4Cypher {
   def close: Unit = {
     driver.close()
     sp.stopAllnodes()
+    Thread.sleep(1000)
   }
 }
 

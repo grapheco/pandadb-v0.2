@@ -126,5 +126,6 @@ class DriverClusterTest4Blob {
   def close(): Unit = {
     driver.close()
     sp.stopAllnodes()
+    Thread.sleep(1000)
   }
 }

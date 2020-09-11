@@ -2,18 +2,10 @@ package cn.pandadb.drivertest
 
 
 import java.io.File
-import java.nio.file.Paths
-import java.util
-import java.util.Optional
-
-import cn.pandadb.config.PandaConfig
 import cn.pandadb.itest.dis.ServerBootStrap
-import cn.pandadb.jraft.PandaJraftService
-import cn.pandadb.server.PandaRuntimeContext
 import org.apache.commons.io.FileUtils
 import org.junit.{After, Assert, Before, Test}
 import org.neo4j.driver.{AuthTokens, Driver, GraphDatabase, Session, Transaction}
-import org.neo4j.server.CommunityBootstrapper
 
 class driverTest {
   val clusterUri = "bolt://127.0.0.1:7610"
@@ -100,6 +92,7 @@ class driverTest {
     session.close()
     driver.close()
     sp.stopAllnodes()
+    Thread.sleep(1000)
   }
 }
 

@@ -71,5 +71,11 @@ class DriverClusterTest4Concurrent {
     tx.close()
     driver.close()
   }
+
+  @After
+  def close(): Unit = {
+    sp.stopAllnodes()
+    Thread.sleep(1000)
+  }
 }
 
