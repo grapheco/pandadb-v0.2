@@ -31,37 +31,17 @@ class driverTest {
     Thread.sleep(5000)
   }
 
-
-  @Test
-  def testSessionWithTransactionSituation(): Unit = {
-    try {
-      driver = GraphDatabase.driver(clusterUri, AuthTokens.basic("neo4j", "neo4j"))
-      session = driver.session()
-      session.run("create (n:a{num:1})")
-      tx = session.beginTransaction()
-      tx.run("create (n:b{num:2})")
-      tx.run("create (n:c{num:3})")
-      val res = tx.run("match (n) return n").stream().count()
-      Assert.assertEquals(3, res.toInt)
-      tx.success()
-      tx.close()
-    } catch {
-      case exception: Exception => {
-        exception.printStackTrace()
-        sp.stopAllnodes()
-      }
-    }
-  }
-
   @Test
   def testSession(): Unit = {
     try {
       driver = GraphDatabase.driver(clusterUri, AuthTokens.basic("neo4j", "neo4j"))
       session = driver.session()
       session.run("create (n:a{num:1})")
+      val res1 = session.run("match (n) return n").stream().count()
       session.run("create (n:a{num:2})")
-      val res = session.run("match (n) return n").stream().count()
-      Assert.assertEquals(2, res.toInt)
+      val res2 = session.run("match (n) return n").stream().count()
+      Assert.assertEquals(1, res1.toInt)
+      Assert.assertEquals(2, res2.toInt)
     } catch {
       case exception: Exception => {
         exception.printStackTrace()
@@ -79,6 +59,27 @@ class driverTest {
       tempTx.run("create (n:a{num:0})")
       tempTx.success()
       tempTx.close()
+      tx = session.beginTransaction()
+      tx.run("create (n:b{num:2})")
+      tx.run("create (n:c{num:3})")
+      val res = tx.run("match (n) return n").stream().count()
+      Assert.assertEquals(3, res.toInt)
+      tx.success()
+      tx.close()
+    } catch {
+      case exception: Exception => {
+        exception.printStackTrace()
+        sp.stopAllnodes()
+      }
+    }
+  }
+
+  @Test
+  def testSessionWithTransactionSituation(): Unit = {
+    try {
+      driver = GraphDatabase.driver(clusterUri, AuthTokens.basic("neo4j", "neo4j"))
+      session = driver.session()
+      session.run("create (n:a{num:1})")
       tx = session.beginTransaction()
       tx.run("create (n:b{num:2})")
       tx.run("create (n:c{num:3})")

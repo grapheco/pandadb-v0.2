@@ -65,11 +65,6 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     @Override
     public StatementResult run(Statement statement, TransactionConfig config) {
         //NOTE: pandadb
-        /*
-         * If use jraft, parse user's statement and dispatch to leader or reader.
-         * No jraft, do as original.
-         * return the statementResult
-         */
         boolean useJraft = GraphDatabase.isUseJraft();
         if (!useJraft) {
             StatementResultCursor cursor = Futures.blockingGet(session.runAsync(statement, config, false),

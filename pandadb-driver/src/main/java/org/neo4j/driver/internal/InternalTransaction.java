@@ -32,9 +32,6 @@ import java.util.Map;
 public class InternalTransaction extends AbstractStatementRunner implements Transaction {
     private final ExplicitTransaction tx;
     // NOTE: pandadb
-    /*
-     * Call session.beginTransaction() will new an InternalTransaction.
-     */
     private boolean hasWriteStatement = false;
     private Transaction leaderTx = null;
     private Driver leaderDriver = null;
@@ -83,15 +80,9 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 readerDriver = null;
             }
         } catch (Exception e) {
-            try {
-                e.printStackTrace();
-                throw new LeaderChangeException("leader changed, please rerun your statement.");
-            } catch (LeaderChangeException ex) {
-                ex.printStackTrace();
-            }
+            e.printStackTrace();
             System.exit(1);
         }
-
         // END_NOTE: pandadb
         Futures.blockingGet(tx.closeAsync(),
                 () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the transaction"));
@@ -166,12 +157,4 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     private void terminateConnectionOnThreadInterrupt(String reason) {
         tx.connection().terminateAndRelease(reason);
     }
-
-    //NOTE: pandadb
-    class LeaderChangeException extends Exception {
-        public LeaderChangeException(String message) {
-            super(message);
-        }
-    }
-    //END_NOTE: pandadb
 }

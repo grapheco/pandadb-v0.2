@@ -11,11 +11,12 @@ import cn.pandadb.jraft.PandaJraftService
 import cn.pandadb.server.PandaRuntimeContext
 import org.apache.commons.io.FileUtils
 import org.junit.{After, Assert, Before, Test}
+import org.neo4j.driver.{AuthToken, AuthTokens, Driver, GraphDatabase}
 import org.neo4j.server.CommunityBootstrapper
 
-class DriverBolbTest {
-  val pandaString = s"panda://127.0.0.1:8081"
-  var driver: PandaDriver = _
+class DriverBlobTest {
+  val pandaString = s"bolt://127.0.0.1:7610"
+  var driver: Driver = _
 
   val neo4jServer1: CommunityBootstrapper = new CommunityBootstrapper
   val neo4jServer2: CommunityBootstrapper = new CommunityBootstrapper
@@ -52,13 +53,12 @@ class DriverBolbTest {
     startServer(neo4jServer2, "test2", "data2")
     startServer(neo4jServer3, "test3", "data3", 1)
 
-    driver = new PandaDriver(pandaString, "neo4j", "neo4j")
+    driver = GraphDatabase.driver(pandaString, AuthTokens.basic("neo4j", "neo4j"))
   }
 
-  // add more than 2 blobs will stuck.
   @Test
   def testCreateMutiBlobsInNode(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     val res = tx.run(
       """create (n:person{name:'mblob',
@@ -77,7 +77,7 @@ class DriverBolbTest {
 
   @Test
   def testRemoveMutiBlobsInNode(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run(
       """create (n:person{name:'mblob',
@@ -86,18 +86,22 @@ class DriverBolbTest {
         |blob3:<https://raw.githubusercontent.com/LianxinGao/Keep_On_Growing/master/images/blob2.jpg>})
       """.stripMargin
     )
-    val res = tx.run("match (n:person) where n.name='mblob' remove n.blob1, n.blob2 return n").next().get(0).asEntity()
+    tx.success()
+    tx.close()
+
+    val tx2 = session.beginTransaction()
+    val res = tx2.run("match (n:person) where n.name='mblob' remove n.blob1, n.blob2 return n").next().get(0).asEntity()
     Assert.assertEquals(false, res.containsKey("blob1"))
     Assert.assertEquals(false, res.containsKey("blob2"))
     Assert.assertEquals(true, res.containsKey("blob3"))
-    tx.success()
-    tx.close()
+    tx2.success()
+    tx2.close()
     session.close()
   }
 
   @Test
   def testUpdateMutiBlobsInNode(): Unit = {
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("create (n:person{name:'up_blob'})")
     val res = tx.run(
@@ -118,7 +122,7 @@ class DriverBolbTest {
   @Test
   def testOverrideBlobInNode(): Unit = {
     // should delete the origin blob.
-    val session = driver.writeSession()
+    val session = driver.session()
     val tx = session.beginTransaction()
     tx.run("create (n:person{name:'up_blob',blob1:<https://www.baidu.com/img/flexible/logo/pc/result.png>})")
     tx.success()
