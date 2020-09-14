@@ -1,6 +1,6 @@
 package cn.pandadb.config
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 import org.neo4j.graphdb.factory.GraphDatabaseSettings
 import org.neo4j.kernel.configuration.Config
@@ -21,12 +21,12 @@ object SettingKeys {
   val esScrollTime = "costore.es.scroll.time.minutes" //, "10").toInt
   val bolt = "dbms.connector.bolt.listen_address"
   val useSnapshot = "cn.pandadb.jraft.server.snapshot.enable"
-  val snapshotTime = "cn.pandadb.jraft.server.snapshot.time"
+  val snapshotIntervalSecs = "cn.pandadb.jraft.server.snapshot.interval.seconds"
 }
 
 class PandaConfig(config: Config) {
-  def useSnapshot: Boolean = config.getRaw(SettingKeys.useSnapshot).get().toBoolean
-  def snapshotTime: Int = config.getRaw(SettingKeys.snapshotTime).get().toInt
+  def useSnapshot: Boolean = config.getRaw(SettingKeys.useSnapshot).orElse("false").toBoolean
+  def snapshotIntervalSecs: Int = config.getRaw(SettingKeys.snapshotIntervalSecs).orElse("3600").toInt
   def bolt: String = config.getRaw(SettingKeys.bolt).get()
   def jraftServerId: String = config.getRaw(SettingKeys.jraftServerId).get()
   def jraftGroupId: String = config.getRaw(SettingKeys.jraftGroupId).get()
@@ -46,6 +46,8 @@ class PandaConfig(config: Config) {
   def esType: String = config.getRaw(SettingKeys.esType).get()
   def esScrollSize: Int = config.getRaw(SettingKeys.esScrollSize).orElse("1000").toInt
   def esScrollTime: Int = config.getRaw(SettingKeys.esScrollTime).orElse("10").toInt
+
+  def getGraphDatabasePath: Path = Paths.get(dataPath, activeDatabase).toAbsolutePath
 
   override def toString: String = {
     s"""jraftServerId: ${this.jraftServerId}

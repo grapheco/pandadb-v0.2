@@ -8,3 +8,7 @@ intelligent graph database
 
 # Licensing
 PandaDB v0.2 is an open source product licensed under GPLv3.
+
+#Limitation
+
+* Unsupport cypher point type, list type and duration type.

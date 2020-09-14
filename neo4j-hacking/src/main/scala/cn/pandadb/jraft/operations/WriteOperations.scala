@@ -120,7 +120,10 @@ class WriteOperations extends Serializable with Logging{
     })
   }
 
-  class SerializableBlob(override val id: BlobId,
+  class SerializableBlobId(value1: Long, value2: Long) extends BlobId(value1, value2) with Serializable {
+  }
+
+  class SerializableBlob(override val id: SerializableBlobId,
                          override val length: Long,
                          override val mimeType: MimeType,
                          @transient  override val streamSource: InputStreamSource
@@ -132,7 +135,8 @@ class WriteOperations extends Serializable with Logging{
 
   object SerializableBlob {
     def fromBlobEntry(blobEntry: BlobEntry): SerializableBlob = {
-      new SerializableBlob(blobEntry.id, blobEntry.length, blobEntry.mimeType, null)
+      new SerializableBlob(new SerializableBlobId(blobEntry.id.values(0), blobEntry.id.values(1)),
+        blobEntry.length, blobEntry.mimeType, null)
     }
   }
 

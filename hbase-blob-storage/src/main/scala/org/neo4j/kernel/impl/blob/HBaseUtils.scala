@@ -1,12 +1,12 @@
 package org.neo4j.kernel.impl.blob
 
-import java.io.{ByteArrayInputStream, InputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, DataOutputStream, InputStream}
 import java.util
 import java.util.{Properties, UUID}
 
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
-import org.neo4j.blob.impl.{BlobFactory, BlobIdFactory}
+import org.neo4j.blob.impl.BlobFactory
 import org.neo4j.blob.util.{Logging, StreamUtils}
 import org.neo4j.blob.{Blob, BlobId, InputStreamSource, MimeType}
 
@@ -15,6 +15,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class HBaseUtils(columnCount: Int = 1024) extends Logging {
   val colCount: Int = columnCount
+  // have fixed 16 bytes array
   val colSize: Int = 2 // cut last 2 bytes as columnName, 2 ^ (8 * 2) > 1024
 
   val columnFamily: Array[Byte] = Bytes.toBytes("BLOB")
@@ -25,7 +26,7 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
 
   def generateId(): BlobId = {
     val uuid = UUID.randomUUID()
-    BlobId(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
+    new BlobId(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
   }
 
   // map BlobId to RowKey and ColName of HTable
@@ -40,7 +41,7 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
 
   def rowCol2BlobId(row: Array[Byte], col: Array[Byte]): BlobId = {
     val bidBytes: Array[Byte] = Array.concat(row, col)
-    BlobIdFactory.fromBytes(bidBytes)
+    BlobId.fromBytes(bidBytes)
   }
 
   // merge [blob.mimeType.code, blob.length, blob.toBytes] and save to one cell
@@ -49,8 +50,9 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
   }
 
   def cellDataToBlob(cellData: Array[Byte]): Blob = {
-    val mimeTypeCode = StreamUtils.convertByteArray2Long(cellData.take(8))
-    val len = StreamUtils.convertByteArray2Long(cellData.slice(8, 16))
+    val mimeTypeCode = StreamUtils.convertByteArray2LongArray(cellData.take(8))
+    val len = StreamUtils.convertByteArray2LongArray(cellData.slice(8, 16))
+
     val in = new ByteArrayInputStream(cellData.slice(16, cellData.length))
 
     val blob = BlobFactory.fromInputStreamSource(new InputStreamSource {
@@ -62,7 +64,7 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
         in.close()
         t
       }
-    }, len, Some(MimeType(mimeTypeCode, code2Types(mimeTypeCode))))
+    }, len(0), Some(MimeType(mimeTypeCode(0), code2Types(mimeTypeCode(0)))))
     blob
   }
 
@@ -96,7 +98,7 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
       val buffer = new ArrayBuffer[(BlobId, Blob)]()
 
       for (entry: util.Map.Entry[Array[Byte], Array[Byte]] <- res.getFamilyMap(columnFamily).entrySet()) {
-        val blobId = BlobIdFactory.fromBytes(Array.concat(row, entry.getKey))
+        val blobId = BlobId.fromBytes(Array.concat(row, entry.getKey))
         val blob = cellDataToBlob(entry.getValue)
 
         buffer.append((blobId, blob))
@@ -104,6 +106,45 @@ class HBaseUtils(columnCount: Int = 1024) extends Logging {
       buffer.toList
     }
     else null
+  }
+
+  def buildPutGroup(blob: Blob, gId: BlobId, columnName: Int): Put = {
+    val retPut: Put = new Put(gId.asByteArray())
+    val cellData = blobToCellData(blob)
+    val colName = convertInt2ByteArray(columnName)
+    retPut.addColumn(columnFamily, colName, cellData)
+    retPut
+  }
+
+  def buildDeleteGroup(gid: BlobId): Delete = {
+    val delete: Delete = new Delete(gid.asByteArray())
+    delete
+  }
+
+  def buildBlobGetGroup(blobId: BlobId): Get = {
+    val rowKey = blobId.asByteArray()
+    val blobGet: Get = new Get(rowKey)
+    blobGet
+  }
+
+  def buildBlobGroupFromGetResult(res: Result): Array[Blob] = {
+    val buffer = new ArrayBuffer[Blob]()
+    val entry = res.getFamilyMap(columnFamily).entrySet()
+    for (e: util.Map.Entry[Array[Byte], Array[Byte]] <- entry) {
+      val cellData = e.getValue
+      val blob = cellDataToBlob(cellData)
+      buffer.append(blob)
+    }
+    buffer.toArray
+  }
+
+  def convertInt2ByteArray(value: Int): Array[Byte] = {
+    val res = new Array[Byte](4)
+    res(0) = (value >> 24).toByte
+    res(1) = (value >> 16).toByte
+    res(2) = (value >> 8).toByte
+    res(3) = (value >> 0).toByte
+    res
   }
 }
 

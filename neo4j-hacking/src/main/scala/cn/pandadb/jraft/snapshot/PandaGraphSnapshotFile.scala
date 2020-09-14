@@ -43,11 +43,11 @@ class CompressDbFileUtil {
 
     Stream.continually(zis.getNextEntry).takeWhile(_ != null).foreach {
       file =>
-        val dir = new File(toLocalPath + file.getName)
+        val dir = new File(toLocalPath + File.separator + file.getName)
         if (!dir.exists()) {
           new File(dir.getParent).mkdirs()
         }
-        val fos = new FileOutputStream(toLocalPath + file.getName)
+        val fos = new FileOutputStream(toLocalPath + File.separator + file.getName)
         val buffer = new Array[Byte](1024)
         Stream.continually(zis.read(buffer)).takeWhile(_ != -1).foreach(fos.write(buffer, 0, _))
         fos.close()

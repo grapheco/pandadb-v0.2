@@ -9,7 +9,6 @@ class GetNeo4jBoltAddressRequestProcessor(pandaJraftServer: PandaJraftServer) ex
   }
 
   override def interest(): String = {
-    val request = new GetNeo4jBoltAddressRequest
-    request.getClass.getName
+    classOf[GetNeo4jBoltAddressRequest].getName
   }
 }
