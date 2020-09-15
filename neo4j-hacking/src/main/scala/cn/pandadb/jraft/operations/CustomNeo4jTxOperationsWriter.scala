@@ -155,12 +155,14 @@ class CustomNeo4jTxOperationsWriter(token: Token) extends Logging{
   }
 
   def commit(): Unit = {
-    logger.info("tx commit")
+    logger.info("neo4j commit tx")
     if (this.needJraftSaveOperations && this.writeOperations != null && this.writeOperations.size>0) {
+      logger.info("Tx Commit : apply tx log to jraft")
       this.writeOperations.assureDataSerializableBeforeCommit()
       PandaRuntimeContext.contextGet[PandaJraftService]().commitWriteOpeartions(this.writeOperations)
     }
     if (this.needCoStoreSaveOpeartions) {
+      logger.info("Tx Commit : apply tx to constore")
       this.costoreTx.commit()
     }
   }
