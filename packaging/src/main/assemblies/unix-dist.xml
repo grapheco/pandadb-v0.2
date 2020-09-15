@@ -15,6 +15,14 @@
             <fileMode>0755</fileMode>
             <excludes>
                 <exclude>**/*.bat</exclude>
+                <exclude>**/*.m4</exclude>
+                <exclude>**/neo4j-backup*</exclude>
+                <exclude>**/*.psd1</exclude>
+                <exclude>**/*.psm1</exclude>
+                <exclude>**/*.ps1</exclude>
+                <exclude>**/Neo4j-Management</exclude>
+                <exclude>**/*.exe</exclude>
+                <exclude>**/*.jar</exclude>
             </excludes>
         </fileSet>
         <fileSet>
@@ -28,6 +36,9 @@
             <outputDirectory>logs</outputDirectory>
             <directoryMode>0755</directoryMode>
             <fileMode>0755</fileMode>
+            <excludes>
+                <exclude>**/.keep</exclude>
+            </excludes>
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}/unix/lib</directory>
@@ -38,13 +49,52 @@
                 <exclude>**/.keep</exclude>
             </excludes>
             <includes>
-                <include>**/*.jar</include>
+                <include>pandadb-server-all-in-one-0.2.jar</include>
             </includes>
         </fileSet>
         <fileSet>
-            <outputDirectory>/</outputDirectory>
+            <directory>src/main/distribution/data</directory>
+            <outputDirectory>data</outputDirectory>
+            <directoryMode>0755</directoryMode>
+            <fileMode>0755</fileMode>
+            <excludes>
+                <exclude>**/.keep</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/distribution/import</directory>
+            <outputDirectory>import</outputDirectory>
+            <directoryMode>0755</directoryMode>
+            <fileMode>0755</fileMode>
+            <excludes>
+                <exclude>**/.keep</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/distribution/plugins</directory>
+            <outputDirectory>plugins</outputDirectory>
+            <directoryMode>0755</directoryMode>
+            <fileMode>0755</fileMode>
+            <excludes>
+                <exclude>**/.keep</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/distribution/run</directory>
+            <outputDirectory>run</outputDirectory>
+            <directoryMode>0755</directoryMode>
+            <fileMode>0755</fileMode>
+            <excludes>
+                <exclude>**/.keep</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/distribution</directory>
+            <outputDirectory/>
+            <directoryMode>0755</directoryMode>
+            <fileMode>0755</fileMode>
             <includes>
-                <include>README.txt</include>
+                <include>README.md</include>
             </includes>
         </fileSet>
     </fileSets>
