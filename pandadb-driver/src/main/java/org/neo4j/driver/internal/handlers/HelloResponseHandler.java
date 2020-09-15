@@ -91,7 +91,12 @@ public class HelloResponseHandler implements ResponseHandler {
      * set cluster server bolt address to GraphDatabase.java as global variable
      */
     private static void extractJraftPeersBoltAddress(Map<String, Value> metadata) {
-        boolean useJraft = metadata.get(USE_JRAFT).asBoolean();
+        boolean useJraft;
+        if (metadata.get(USE_JRAFT) == null) {
+            useJraft = false;
+        } else {
+            useJraft = metadata.get(USE_JRAFT).asBoolean();
+        }
         if (useJraft) {
             List<Object> peers = metadata.get(JRAFT_PEERS).asList();
             String leader = metadata.get(JRAFT_LEADER).asString();
