@@ -7,7 +7,7 @@
     <groupId>cn.pandadb</groupId>
     <artifactId>parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.2</version>
+    <version>0.2.0-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>intelligent graph database:
@@ -35,7 +35,7 @@
         <scala.version>2.11.8</scala.version>
         <scala.binary.version>2.11</scala.binary.version>
         <scala.compat.version>2.11</scala.compat.version>
-        <pandadb.version>0.2</pandadb.version>
+        <pandadb.version>${project.version}</pandadb.version>
         <neo4j.version>3.5.6-BLOB-SNAPSHOT</neo4j.version>
     </properties>
 
