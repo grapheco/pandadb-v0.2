@@ -20,7 +20,7 @@
         </dependency>
         <dependency>
             <groupId>cn.pandadb</groupId>
-            <artifactId>neo4j-hacking</artifactId>
+            <artifactId>pandadb-neo4j</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

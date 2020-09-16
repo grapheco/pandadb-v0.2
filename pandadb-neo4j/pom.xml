@@ -11,7 +11,7 @@
         <relativePath>../</relativePath>
     </parent>
 
-    <artifactId>neo4j-hacking</artifactId>
+    <artifactId>pandadb-neo4j</artifactId>
     <name>${project.artifactId} ${project.version}</name>
 
     <dependencies>

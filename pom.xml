@@ -19,8 +19,8 @@
     <url>https://github.com/grapheco/pandadb-v0.2</url>
 
     <modules>
-        <module>pandadb-raft-itest</module>
-        <module>neo4j-hacking</module>
+        <module>pandadb-itest</module>
+        <module>pandadb-neo4j</module>
         <module>commons</module>
         <module>hbase-blob-storage</module>
         <module>pandadb-driver</module>
