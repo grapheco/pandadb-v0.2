@@ -23,6 +23,7 @@
                 <exclude>**/Neo4j-Management</exclude>
                 <exclude>**/*.exe</exclude>
                 <exclude>**/*.jar</exclude>
+                <exclude>**/.keep</exclude>
             </excludes>
         </fileSet>
         <fileSet>
