@@ -7,7 +7,6 @@ store_lock
 *.bin
 *.temp
 *.tmp
-logs/
 *.log
 **/output/
 .DS_Store

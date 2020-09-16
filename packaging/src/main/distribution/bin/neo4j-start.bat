@@ -6,9 +6,9 @@ setlocal
   echo Directory=%Directory%
   for %%d in (%~dp0..) do set ParentDirectory=%%~fd
   echo ParentDirectory=%ParentDirectory%
-  set class_path=%ParentDirectory%\lib\pandadb-server-all-in-one-0.1.0-SNAPSHOT.jar
+  set class_path=%ParentDirectory%\lib\pandadb-server-all-in-one-0.2.jar
   set MainClass="org.neo4j.server.CommunityEntryPoint"
-  set config=%ParentDirectory%\conf\neo4j.conf
+  set config=%ParentDirectory%\conf
   set log_path=%ParentDirectory%\logs\neo4j.log
   echo Starting Pandadb...
 
