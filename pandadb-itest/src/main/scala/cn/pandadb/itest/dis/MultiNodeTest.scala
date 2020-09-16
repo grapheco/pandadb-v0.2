@@ -6,6 +6,8 @@ import java.nio.file.Paths
 import org.junit.{After, Assert, Before, Test}
 import org.neo4j.driver.{AuthTokens, GraphDatabase}
 
+import scala.util.matching.Regex
+
 class MultiNodeTest {
   final val pathsr = "F:\\IdCode\\pandadb-v0.2\\pandadb-raft-itest\\testoutput"
   @Before
@@ -104,5 +106,19 @@ class MultiNodeTest {
     var blf = true
     Thread.sleep(10000)
     sp.stopAllnodes()
+  }
+}
+
+object Test {
+  def main(args: Array[String]) {
+    //create
+    val r1 = "match\\s*\\(.*\\{?.*\\}?\\s*\\)\\s*(where)?\\s*(set|remove|delete|merge)+\\s*"
+    val r2 = "create\\s*\\(.*\\{?.*\\}?\\s*\\)"
+    val pattern = new Regex(s"${r1}|${r2}")
+
+    val str = "match(n: set {name:'Mergegg'}) ".toLowerCase
+    val ks = pattern findAllIn str
+
+    println(ks.toList)
   }
 }
