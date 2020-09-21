@@ -59,7 +59,7 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
   require(queryService != null, "Can't work with a null graph database")
 
   // NOTE: pandadb
-  val pandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
+  val pandaUtils = new PandaUtils
   //END_NOTE: pandadb
 
   // HELPER OBJECTS
@@ -110,9 +110,8 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
       // NOTE: pandadb
       // refuse write on read node
       val text = query.toLowerCase()
-      if (text.contains("create") || text.contains("merge") || text.contains("set")
-        || text.contains("delete") || text.contains("remove")) {
-        if (!isWriteOnLeader()) {
+      if (pandaUtils.isWriteStatement(text)) {
+        if (!pandaUtils.isWriteOnLeader()) {
           throw new Exception("can't write on read node. please check your leader uri")
         }
       }
@@ -224,18 +223,6 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
     new Supplier[T] {
       override def get(): T = t
     }
-
-  // NOTE: pandadb
-  private def isWriteOnLeader(): Boolean = {
-    if (pandaConfig.useJraft) {
-      val pandaService = PandaRuntimeContext.contextGet[PandaJraftService]()
-      if (pandaService.isLeader()) {
-        true
-      } else false
-    } else true
-  }
-
-  // END_NOTE: pandadb
 }
 
 object ExecutionEngine {
