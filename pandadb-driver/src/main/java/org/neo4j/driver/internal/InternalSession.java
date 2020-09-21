@@ -125,19 +125,27 @@ public class InternalSession extends AbstractStatementRunner implements Session 
     public void close() {
         //NOTE: pandadb
         if (leaderDriver != null) {
+            leaderSession.closeForPanda();
             leaderDriver.close();
             leaderSession = null;
             leaderDriver = null;
         }
         if (readerDriver != null) {
+            readerSession.closeForPanda();
             readerDriver.close();
             readerSession = null;
             readerDriver = null;
         }
         //END_NOTE: pandadb
-
         Futures.blockingGet(session.closeAsync(), () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the session"));
     }
+
+    //NOTE: pandadb
+    @Override
+    public void closeForPanda(){
+        Futures.blockingGet(session.closeAsync(), () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the session"));
+    }
+    //END_NOTE: pandadb
 
     @Override
     public Transaction beginTransaction() {
