@@ -76,22 +76,22 @@ trait PredicatePushDownPipe extends Pipe{
     }
   }
 
-  def fetchNodes(state: QueryState, baseContext: ExecutionContext): Option[Iterable[VirtualNodeValue]] = {
+  def fetchNodes(state: QueryState, baseContext: ExecutionContext): Option[Iterable[NodeValue]] = {
     predicate match {
       case Some(p) =>
         val expr: NFPredicate = convertPredicate(p, state, baseContext)
         if (expr != null && (expr.isInstanceOf[NFAnd] || expr.isInstanceOf[NFOr] || expr.isInstanceOf[NFContainsWith])) {// only enable ppd when NFAnd, NFor
           fatherPipe.get.bypass()
           if (labelName != null) {
-            Some(nodeStore.get.getNodeBylabelAndFilter(labelName, expr).map(id => VirtualValues.node(id)))
+            Some(nodeStore.get.getNodeBylabelAndFilter(labelName, expr).map(id => state.query.nodeById(id)))
           }
           else {
-            Some(nodeStore.get.filterNodes(expr).map(id => VirtualValues.node(id)))
+            Some(nodeStore.get.filterNodes(expr).map(id => state.query.nodeById(id)))
           }
         }
         else {
           if (labelName != null) {
-            Some(nodeStore.get.getNodesByLabel(labelName).map(id => VirtualValues.node(id)))
+            Some(nodeStore.get.getNodesByLabel(labelName).map(id => state.query.nodeById(id)))
           }
           else {
             None

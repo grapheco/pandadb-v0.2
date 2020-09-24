@@ -19,16 +19,29 @@
  */
 package org.neo4j.graphdb.facade;
 
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTGeometry;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTNode;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTPath;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTPoint;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTRelationship;
+import static org.neo4j.kernel.api.proc.Context.DATABASE_API;
+import static org.neo4j.kernel.api.proc.Context.DEPENDENCY_RESOLVER;
+import static org.neo4j.kernel.api.proc.Context.KERNEL_TRANSACTION;
+import static org.neo4j.kernel.api.proc.Context.SECURITY_CONTEXT;
+
 import java.io.File;
 import java.util.Map;
 import java.util.function.Function;
 
 import org.neo4j.bolt.BoltServer;
 import org.neo4j.dbms.database.DatabaseManager;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.DependencyResolver;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.facade.extension.ExtendedDatabaseLifecyclePluginsService;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.internal.DataCollectorManager;
 import org.neo4j.graphdb.factory.module.DataSourceModule;
 import org.neo4j.graphdb.factory.module.PlatformModule;
 import org.neo4j.graphdb.factory.module.edition.AbstractEditionModule;
@@ -36,6 +49,7 @@ import org.neo4j.graphdb.security.URLAccessRule;
 import org.neo4j.graphdb.spatial.Geometry;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.helpers.collection.Pair;
+import org.neo4j.internal.DataCollectorManager;
 import org.neo4j.internal.kernel.api.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -65,23 +79,12 @@ import org.neo4j.procedure.ProcedureTransaction;
 import org.neo4j.scheduler.DeferredExecutor;
 import org.neo4j.scheduler.Group;
 
-// NOTE: pandadb v0.2
 import cn.pandadb.config.PandaConfig;
-import cn.pandadb.costore.ExternalPropertyStoreFactory;
 import cn.pandadb.costore.CustomPropertyNodeStore;
+import cn.pandadb.costore.ExternalPropertiesContext;
+import cn.pandadb.costore.ExternalPropertyStoreFactory;
 import cn.pandadb.jraft.PandaJraftService;
 import cn.pandadb.server.PandaRuntimeContext;
-// END-NOTE: pandadb
-
-import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTGeometry;
-import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTNode;
-import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTPath;
-import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTPoint;
-import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTRelationship;
-import static org.neo4j.kernel.api.proc.Context.DATABASE_API;
-import static org.neo4j.kernel.api.proc.Context.DEPENDENCY_RESOLVER;
-import static org.neo4j.kernel.api.proc.Context.KERNEL_TRANSACTION;
-import static org.neo4j.kernel.api.proc.Context.SECURITY_CONTEXT;
 
 /**
  * This is the main factory for creating database instances. It delegates creation to three different modules
@@ -242,7 +245,9 @@ public class GraphDatabaseFacadeFactory
         if (pandaConfig.useCoStorage()) {
             try {
                 ExternalPropertyStoreFactory costoreFactory = (ExternalPropertyStoreFactory) Class.forName(pandaConfig.costoreFactory()).newInstance();
-                PandaRuntimeContext.contextPut(CustomPropertyNodeStore.class.getName(), costoreFactory.create(pandaConfig));
+                CustomPropertyNodeStore nodeStore = costoreFactory.create(pandaConfig);
+                PandaRuntimeContext.contextPut(CustomPropertyNodeStore.class.getName(),nodeStore);
+                ExternalPropertiesContext.bindCustomPropertyNodeStore(nodeStore);
             } catch (Exception e) {
                 e.printStackTrace();
             }

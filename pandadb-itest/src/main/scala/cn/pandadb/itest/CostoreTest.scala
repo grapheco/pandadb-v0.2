@@ -27,7 +27,6 @@ class PandaCostoreTest {
   println(PandaRuntimeContext.contextGet[PandaConfig]())
   val esNodeStore: InElasticSearchPropertyNodeStore = PandaRuntimeContext.contextGet[CustomPropertyNodeStore]().asInstanceOf[InElasticSearchPropertyNodeStore]
   esNodeStore.clearAll()
-  ExternalPropertiesContext.bindCustomPropertyNodeStore(esNodeStore)
   db.execute("CREATE (n:Person {age: 10, name: 'bob', address: 'CNIC, CAS, Beijing, China'})")
   db.execute("CREATE (n:Person {age: 10, name: 'bob2', address: 'CNIC, CAS, Beijing, China'})")
   db.execute("CREATE (n:Person {age: 40, name: 'alex', address: 'CNIC, CAS, Beijing, China'})")
