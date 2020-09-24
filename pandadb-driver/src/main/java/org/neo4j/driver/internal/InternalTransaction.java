@@ -111,7 +111,7 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
             } else {
                 // pandadb logic
                 GraphDatabase.isDispatcher = false;
-                String cypher = statement.text();
+                String cypher = statement.text().toLowerCase();
 
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
