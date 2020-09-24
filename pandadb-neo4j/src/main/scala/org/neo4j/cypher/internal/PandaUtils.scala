@@ -15,7 +15,8 @@ class PandaUtils {
   val pandaConfig = PandaRuntimeContext.contextGet[PandaConfig]()
 
   def isWriteStatement(statement: String): Boolean = {
-    !pattern.findAllIn(statement).isEmpty
+    val cypher = statement.toLowerCase().replaceAll("\n", "").replaceAll("\r", "")
+    !pattern.findAllIn(cypher).isEmpty
   }
 
   def isWriteOnLeader(): Boolean = {

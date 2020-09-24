@@ -9,7 +9,8 @@ class UtilsForPanda {
   val pattern = new Regex(s"${r1}|${r2}|${r3}")
 
   def isWriteStatement(statement: String): Boolean = {
-    val res = pattern.findAllIn(statement)
+    val cypher = statement.toLowerCase().replaceAll("\n", "").replaceAll("\r", "")
+    val res = pattern.findAllIn(cypher)
     !res.isEmpty
   }
 }
