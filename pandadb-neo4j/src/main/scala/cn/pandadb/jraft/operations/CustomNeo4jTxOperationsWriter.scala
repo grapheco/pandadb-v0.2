@@ -155,20 +155,20 @@ class CustomNeo4jTxOperationsWriter(token: Token) extends Logging{
   }
 
   def commit(): Unit = {
-    logger.info("neo4j commit tx")
+    logger.debug("neo4j commit tx")
     if (this.needJraftSaveOperations && this.writeOperations != null && this.writeOperations.size>0) {
-      logger.info("Tx Commit : apply tx log to jraft")
+      logger.debug("Tx Commit : apply tx log to jraft")
       this.writeOperations.assureDataSerializableBeforeCommit()
       PandaRuntimeContext.contextGet[PandaJraftService]().commitWriteOpeartions(this.writeOperations)
     }
     if (this.needCoStoreSaveOpeartions) {
-      logger.info("Tx Commit : apply tx to constore")
+      logger.debug("Tx Commit : apply tx to costore")
       this.costoreTx.commit()
     }
   }
 
   def rollback(): Unit = {
-    logger.info("tx rollback")
+    logger.debug("tx rollback")
     if (this.needCoStoreSaveOpeartions) {
       this.costoreTx.rollback()
     }
@@ -178,7 +178,7 @@ class CustomNeo4jTxOperationsWriter(token: Token) extends Logging{
   }
 
   def close(): Unit = {
-    logger.info("tx close")
+    logger.debug("tx close")
     if (this.needCoStoreSaveOpeartions) {
       this.costoreTx.close()
     }
