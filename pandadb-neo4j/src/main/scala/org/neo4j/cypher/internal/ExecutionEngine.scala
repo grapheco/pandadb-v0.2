@@ -109,8 +109,7 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
 
       // NOTE: pandadb
       // refuse write on read node
-      val text = query.toLowerCase()
-      if (pandaUtils.isWriteStatement(text)) {
+      if (pandaUtils.isWriteStatement(query)) {
         if (!pandaUtils.isWriteOnLeader()) {
           throw new Exception("can't write on read node. please check your leader uri")
         }
