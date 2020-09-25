@@ -4,11 +4,10 @@ import cn.pandadb.costore.CustomPropertyNodeStore
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.{Expression, ParameterExpression, Property, SubstringFunction, ToIntegerFunction}
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates._
 import org.neo4j.cypher.internal.runtime.interpreted.commands.values.KeyToken
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.{Pipe, QueryState}
 import org.neo4j.cypher.internal.runtime.interpreted.{ExecutionContext, NFAnd, NFContainsWith, NFEndsWith, NFEquals, NFGreaterThan, NFGreaterThanOrEqual, NFHasProperty, NFLessThan, NFLessThanOrEqual, NFNot, NFOr, NFPredicate, NFRegexp, NFStartsWith, pipes}
 import org.neo4j.cypher.internal.v3_5.util.{Fby, Last, NonEmptyList}
 import org.neo4j.values.storable.{StringValue, Values}
-import org.neo4j.values.virtual.{NodeValue, VirtualNodeValue, VirtualValues}
+import org.neo4j.values.virtual.{NodeReferencePromised, NodeValue, VirtualNodeValue, VirtualValues}
 
 trait PredicatePushDownPipe extends Pipe{
 
@@ -76,22 +75,22 @@ trait PredicatePushDownPipe extends Pipe{
     }
   }
 
-  def fetchNodes(state: QueryState, baseContext: ExecutionContext): Option[Iterable[NodeValue]] = {
+  def fetchNodes(state: QueryState, baseContext: ExecutionContext): Option[Iterable[VirtualNodeValue]] = {
     predicate match {
       case Some(p) =>
         val expr: NFPredicate = convertPredicate(p, state, baseContext)
         if (expr != null && (expr.isInstanceOf[NFAnd] || expr.isInstanceOf[NFOr] || expr.isInstanceOf[NFContainsWith])) {// only enable ppd when NFAnd, NFor
           fatherPipe.get.bypass()
           if (labelName != null) {
-            Some(nodeStore.get.getNodeBylabelAndFilter(labelName, expr).map(id => state.query.nodeById(id)))
+            Some(nodeStore.get.getNodeBylabelAndFilter(labelName, expr).map(id => VirtualValues.nodePromised(id, state.query)))
           }
           else {
-            Some(nodeStore.get.filterNodes(expr).map(id => state.query.nodeById(id)))
+            Some(nodeStore.get.filterNodes(expr).map(id => VirtualValues.nodePromised(id, state.query)))
           }
         }
         else {
           if (labelName != null) {
-            Some(nodeStore.get.getNodesByLabel(labelName).map(id => state.query.nodeById(id)))
+            Some(nodeStore.get.getNodesByLabel(labelName).map(id => VirtualValues.nodePromised(id, state.query)))
           }
           else {
             None
