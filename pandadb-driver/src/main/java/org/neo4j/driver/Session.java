@@ -29,5 +29,8 @@ public interface Session extends Resource, StatementRunner {
 
     void close();
 
+    // NOTE: pandadb
     void closeForPanda();
+    //END_NOTE: pandadb
+
 }

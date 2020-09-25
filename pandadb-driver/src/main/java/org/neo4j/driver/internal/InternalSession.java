@@ -18,7 +18,6 @@
  */
 package org.neo4j.driver.internal;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.neo4j.driver.*;
@@ -90,7 +89,7 @@ public class InternalSession extends AbstractStatementRunner implements Session 
 
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
-                    hasWriteStatement = true;
+                    if (!hasWriteStatement) hasWriteStatement = true;
                     if (leaderDriver == null) {
                         Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
                                 , GraphDatabase.pandaAuthToken);
@@ -101,9 +100,8 @@ public class InternalSession extends AbstractStatementRunner implements Session 
                 }
                 //read cypher
                 else {
-                    if (hasWriteStatement) {
-                        return leaderSession.run(statement);
-                    }
+                    if (hasWriteStatement) return leaderSession.run(statement);
+
                     String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
                     if (readerDriver == null) {
                         readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);

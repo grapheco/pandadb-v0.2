@@ -18,16 +18,10 @@
  */
 package org.neo4j.driver.internal;
 
-import org.apache.commons.lang3.exception.ExceptionContext;
 import org.neo4j.driver.*;
 import org.neo4j.driver.async.StatementResultCursor;
 import org.neo4j.driver.internal.async.ExplicitTransaction;
 import org.neo4j.driver.internal.util.Futures;
-import scala.Int;
-
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
 
 public class InternalTransaction extends AbstractStatementRunner implements Transaction {
     private final ExplicitTransaction tx;
@@ -68,13 +62,13 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
         // NOTE: pandadb
         try {
             if (leaderDriver != null) {
-                leaderTx.close();
+                leaderTx.closeForPanda();
                 leaderDriver.close();
                 leaderTx = null;
                 leaderDriver = null;
             }
             if (readerDriver != null) {
-                readerTx.close();
+                readerTx.closeForPanda();
                 readerDriver.close();
                 readerTx = null;
                 readerDriver = null;
@@ -87,6 +81,14 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
         Futures.blockingGet(tx.closeAsync(),
                 () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the transaction"));
     }
+
+    // NOTE: pandadb
+    @Override
+    public void closeForPanda() {
+        Futures.blockingGet(tx.closeAsync(),
+                () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the transaction"));
+    }
+    // END_NOTE: pandadb
 
     @Override
     public StatementResult run(Statement statement) {
@@ -115,7 +117,7 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
 
                 //write cypher
                 if (utils.isWriteCypher(cypher)) {
-                    hasWriteStatement = true;
+                    if (!hasWriteStatement) hasWriteStatement = true;
                     if (InternalSession.leaderDriver == null) {
                         if (leaderDriver == null) {
                             Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
@@ -134,9 +136,8 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 }
                 //read cypher
                 else {
-                    if (hasWriteStatement) {
-                        return leaderTx.run(statement);
-                    }
+                    if (hasWriteStatement) return leaderTx.run(statement);
+
                     String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
                     if (readerDriver == null) {
                         readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
