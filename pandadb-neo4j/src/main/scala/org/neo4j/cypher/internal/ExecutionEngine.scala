@@ -98,24 +98,23 @@ class ExecutionEngine(val queryService: GraphDatabaseQueryService,
     execute(query, params, context, profile = true)
 
   def execute(query: String, params: MapValue, context: TransactionalContext, profile: Boolean = false): Result = {
-    val queryTracer = tracer.compileQuery(query)
 
+    // NOTE: pandadb
+    // refuse write on read node
+    if (pandaUtils.isWriteStatement(query)) {
+      if (!pandaUtils.isWriteOnLeader()) {
+        throw new Exception("can't write on read node. please check your leader uri")
+      }
+    }
+    // END_NOTE: pandadb
+
+    val queryTracer = tracer.compileQuery(query)
     try {
       val preParsedQuery = preParser.preParseQuery(query, profile)
       val executableQuery = getOrCompile(context, preParsedQuery, queryTracer, params)
       if (preParsedQuery.executionMode.name != "explain") {
         checkParameters(executableQuery.paramNames, params, executableQuery.extractedParams)
       }
-
-      // NOTE: pandadb
-      // refuse write on read node
-      if (pandaUtils.isWriteStatement(query)) {
-        if (!pandaUtils.isWriteOnLeader()) {
-          throw new Exception("can't write on read node. please check your leader uri")
-        }
-      }
-      // END_NOTE: pandadb
-
       val combinedParams = params.updatedWith(executableQuery.extractedParams)
       context.executingQuery().compilationCompleted(executableQuery.compilerInfo, supplier(executableQuery.planDescription()))
       executableQuery.execute(context, preParsedQuery, combinedParams)

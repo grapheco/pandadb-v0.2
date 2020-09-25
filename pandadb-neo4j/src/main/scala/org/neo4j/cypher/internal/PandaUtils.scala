@@ -7,7 +7,7 @@ import cn.pandadb.server.PandaRuntimeContext
 import scala.util.matching.Regex
 
 class PandaUtils {
-  val r1 = "(explain\\s)?match\\s*\\(.*\\s*\\{?.*\\}?\\s*\\)\\s*(where)?\\s*.*\\s*(set|remove|delete|merge)\\s*"
+  val r1 = "(explain\\s+)?match\\s*\\(.*\\s*\\{?.*\\}?\\s*\\)\\s*(where)?\\s*.*\\s*(set|remove|delete|merge)\\s*"
   val r3 = "(explain\\s+)?merge\\s*\\(.*\\s*\\{?.*\\}?\\s*\\)\\s*(where)?\\s*.*\\s*(set|remove|delete|merge)?\\s*"
   val r2 = "(explain\\s+)?create\\s*\\(.*\\{?.*\\}?\\s*\\)"
   val pattern = new Regex(s"${r1}|${r2}|${r3}")
