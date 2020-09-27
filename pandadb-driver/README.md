@@ -6,9 +6,11 @@
 ```
 this command will create `panda-driver-<version>.jar` in `target` directory.
 #### 2. Usage
- Note: pandadb-driver compatible with neo4j-driver's standalone mode.
+ Note: 
+ 1. pandadb-driver compatible with neo4j-driver's standalone mode.
+ 2. running multiple drivers concurrently is not supported.
  - - -  
- **1. pandadb-cluster mode:**  
+ **2.1  pandadb-cluster mode:**  
  If you have a pandadb-cluster, you can create driver by using any cluster's IP and bolt port.  
 ```
 // cluster: 127.0.0.1:7610, 127.0.0.1:7620, 127.0.0.1:7630
@@ -30,6 +32,6 @@ tx.close()
 session2.close()
 driver.close()
 ```
- **2. standalone mode:**  
+ **2.2  standalone mode:**  
 Note: just use as neo4j-driver, you can only create driver by using the server's IP and bolt port.  
  
