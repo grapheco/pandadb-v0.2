@@ -59,7 +59,7 @@ class DriverTest4StandaloneMode {
     val tx = session.beginTransaction()
     tx.run("create (n:bbb{name:'u1', age:100})")
     val res = tx.run("match (n:bbb) where n.name='u1' set n.age=200 set n.isBoy=true return n").next().get(0).asEntity()
-    println(res)
+    println(res.get("age"))
     tx.success()
     tx.close()
   }

@@ -73,41 +73,43 @@ public class InternalSession extends AbstractStatementRunner implements Session 
             Connection connection = Futures.getNow(session.connectionAsync());
             return new InternalStatementResult(connection, cursor);
         } else {
-            if (!GraphDatabase.isDispatcher) {
-                StatementResultCursor cursor = Futures.blockingGet(session.runAsync(statement, config, false),
-                        () -> terminateConnectionOnThreadInterrupt("Thread interrupted while running query in session"));
+            synchronized (GraphDatabase.class){
+                if (!GraphDatabase.isDispatcher) {
+                    StatementResultCursor cursor = Futures.blockingGet(session.runAsync(statement, config, false),
+                            () -> terminateConnectionOnThreadInterrupt("Thread interrupted while running query in session"));
 
-                // query executed, it is safe to obtain a connection in a blocking way
-                Connection connection = Futures.getNow(session.connectionAsync());
-                StatementResult result = new InternalStatementResult(connection, cursor);
-                GraphDatabase.isDispatcher = true;
-                return result;
-            } else {
-                // pandadb logic
-                GraphDatabase.isDispatcher = false;
-                String cypher = statement.text();
+                    // query executed, it is safe to obtain a connection in a blocking way
+                    Connection connection = Futures.getNow(session.connectionAsync());
+                    StatementResult result = new InternalStatementResult(connection, cursor);
+                    GraphDatabase.isDispatcher = true;
+                    return result;
+                } else {
+                    // pandadb logic
+                    GraphDatabase.isDispatcher = false;
+                    String cypher = statement.text();
 
-                //write cypher
-                if (utils.isWriteCypher(cypher)) {
-                    if (!hasWriteStatement) hasWriteStatement = true;
-                    if (leaderDriver == null) {
-                        Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
-                                , GraphDatabase.pandaAuthToken);
-                        leaderSession = driver.session();
-                        leaderDriver = driver;
+                    //write cypher
+                    if (utils.isWriteCypher(cypher)) {
+                        if (!hasWriteStatement) hasWriteStatement = true;
+                        if (leaderDriver == null) {
+                            Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
+                                    , GraphDatabase.pandaAuthToken);
+                            leaderSession = driver.session();
+                            leaderDriver = driver;
+                        }
+                        return leaderSession.run(statement);
                     }
-                    return leaderSession.run(statement);
-                }
-                //read cypher
-                else {
-                    if (hasWriteStatement) return leaderSession.run(statement);
+                    //read cypher
+                    else {
+                        if (hasWriteStatement) return leaderSession.run(statement);
 
-                    String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
-                    if (readerDriver == null) {
-                        readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
-                        readerSession = readerDriver.session();
+                        String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
+                        if (readerDriver == null) {
+                            readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
+                            readerSession = readerDriver.session();
+                        }
+                        return readerSession.run(statement);
                     }
-                    return readerSession.run(statement);
                 }
             }
         }
@@ -121,18 +123,20 @@ public class InternalSession extends AbstractStatementRunner implements Session 
 
     @Override
     public void close() {
-        //NOTE: pandadb
-        if (leaderDriver != null) {
-            leaderSession.closeForPanda();
-            leaderDriver.close();
-            leaderSession = null;
-            leaderDriver = null;
-        }
-        if (readerDriver != null) {
-            readerSession.closeForPanda();
-            readerDriver.close();
-            readerSession = null;
-            readerDriver = null;
+        synchronized (GraphDatabase.class){
+            //NOTE: pandadb
+            if (leaderDriver != null) {
+                leaderSession.closeForPanda();
+                leaderDriver.close();
+                leaderSession = null;
+                leaderDriver = null;
+            }
+            if (readerDriver != null) {
+                readerSession.closeForPanda();
+                readerDriver.close();
+                readerSession = null;
+                readerDriver = null;
+            }
         }
         //END_NOTE: pandadb
         Futures.blockingGet(session.closeAsync(), () -> terminateConnectionOnThreadInterrupt("Thread interrupted while closing the session"));

@@ -17,22 +17,20 @@ import org.neo4j.server.CommunityBootstrapper
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-// make sure all the jraft.enabled = true
+// before test, run at least 3 servers in itest.PandaJraftServerTest
 class DriverClusterTest4Concurrent {
   val pandaString = s"bolt://127.0.0.1:7610"
   val drivers = ArrayBuffer[Driver]()
   val driverNumber = 10
   val testWriteTimes = 1
   var driver4Test: Driver = null
-  val sp = new ServerBootStrap
 
   @Before
   def init(): Unit = {
-    if (new File("./testoutput").exists()) {
-      FileUtils.deleteDirectory(new File("./testoutput"))
-    }
-    sp.startThreeNodes()
-    Thread.sleep(10000)
+//    if (new File("./testoutput").exists()) {
+//      FileUtils.deleteDirectory(new File("./testoutput"))
+//    }
+//    Thread.sleep(10000)
 
     driver4Test = GraphDatabase.driver(pandaString, AuthTokens.basic("neo4j", "neo4j"))
     for (i <- 1 to driverNumber) {
@@ -42,7 +40,6 @@ class DriverClusterTest4Concurrent {
 
   @Test
   def testWrite(): Unit = {
-    try {
       drivers.par.foreach(
         driver => {
           createNode(driver, testWriteTimes)
@@ -56,9 +53,6 @@ class DriverClusterTest4Concurrent {
 
       tx.success()
       tx.close()
-    } catch {
-      case exception: Exception => sp.stopAllnodes()
-    }
   }
 
   def createNode(driver: Driver, times: Int): Unit = {
@@ -74,8 +68,7 @@ class DriverClusterTest4Concurrent {
 
   @After
   def close(): Unit = {
-    sp.stopAllnodes()
-    Thread.sleep(1000)
+    driver4Test.close()
   }
 }
 

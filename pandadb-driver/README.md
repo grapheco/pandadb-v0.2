@@ -6,9 +6,7 @@
 ```
 this command will create `panda-driver-<version>.jar` in `target` directory.
 #### 2. Usage
- Note: 
- 1. pandadb-driver compatible with neo4j-driver's standalone mode.
- 2. running multiple drivers concurrently is not supported.
+ Note: pandadb-driver compatible with neo4j-driver's standalone mode.
  - - -  
  **2.1  pandadb-cluster mode:**  
  If you have a pandadb-cluster, you can create driver by using any cluster's IP and bolt port.  

@@ -60,7 +60,7 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
     @Override
     public void close() {
         // NOTE: pandadb
-        try {
+        synchronized (GraphDatabase.class) {
             if (leaderDriver != null) {
                 leaderTx.closeForPanda();
                 leaderDriver.close();
@@ -73,9 +73,6 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                 readerTx = null;
                 readerDriver = null;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
         }
         // END_NOTE: pandadb
         Futures.blockingGet(tx.closeAsync(),
@@ -104,46 +101,48 @@ public class InternalTransaction extends AbstractStatementRunner implements Tran
                     () -> terminateConnectionOnThreadInterrupt("Thread interrupted while running query in transaction"));
             return new InternalStatementResult(tx.connection(), cursor);
         } else {
-            if (!GraphDatabase.isDispatcher) {
-                StatementResultCursor cursor = Futures.blockingGet(tx.runAsync(statement, false),
-                        () -> terminateConnectionOnThreadInterrupt("Thread interrupted while running query in transaction"));
-                StatementResult result = new InternalStatementResult(tx.connection(), cursor);
-                GraphDatabase.isDispatcher = true;
-                return result;
-            } else {
-                // pandadb logic
-                GraphDatabase.isDispatcher = false;
-                String cypher = statement.text();
+            synchronized (GraphDatabase.class) {
+                if (!GraphDatabase.isDispatcher) {
+                    StatementResultCursor cursor = Futures.blockingGet(tx.runAsync(statement, false),
+                            () -> terminateConnectionOnThreadInterrupt("Thread interrupted while running query in transaction"));
+                    StatementResult result = new InternalStatementResult(tx.connection(), cursor);
+                    GraphDatabase.isDispatcher = true;
+                    return result;
+                } else {
+                    // pandadb logic
+                    GraphDatabase.isDispatcher = false;
+                    String cypher = statement.text();
 
-                //write cypher
-                if (utils.isWriteCypher(cypher)) {
-                    if (!hasWriteStatement) hasWriteStatement = true;
-                    if (InternalSession.leaderDriver == null) {
-                        if (leaderDriver == null) {
-                            Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
-                                    , GraphDatabase.pandaAuthToken);
-                            leaderTx = driver.session().beginTransaction();
-                            leaderDriver = driver;
+                    //write cypher
+                    if (utils.isWriteCypher(cypher)) {
+                        if (!hasWriteStatement) hasWriteStatement = true;
+                        if (InternalSession.leaderDriver == null) {
+                            if (leaderDriver == null) {
+                                Driver driver = GraphDatabase.driver(utils.getLeaderUri(GraphDatabase.getLeaderId())
+                                        , GraphDatabase.pandaAuthToken);
+                                leaderTx = driver.session().beginTransaction();
+                                leaderDriver = driver;
+                            }
+                            return leaderTx.run(statement);
+                        } else {
+                            if (leaderTx == null) {
+                                leaderTx = InternalSession.leaderSession.beginTransaction();
+                                leaderDriver = InternalSession.leaderDriver;
+                            }
+                            return leaderTx.run(statement);
                         }
-                        return leaderTx.run(statement);
-                    } else {
-                        if (leaderTx == null) {
-                            leaderTx = InternalSession.leaderSession.beginTransaction();
-                            leaderDriver = InternalSession.leaderDriver;
-                        }
-                        return leaderTx.run(statement);
                     }
-                }
-                //read cypher
-                else {
-                    if (hasWriteStatement) return leaderTx.run(statement);
+                    //read cypher
+                    else {
+                        if (hasWriteStatement) return leaderTx.run(statement);
 
-                    String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
-                    if (readerDriver == null) {
-                        readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
-                        readerTx = readerDriver.session().beginTransaction();
+                        String readerUri = utils.getReaderUri(GraphDatabase.getReaderIds(), false);
+                        if (readerDriver == null) {
+                            readerDriver = GraphDatabase.driver(readerUri, GraphDatabase.pandaAuthToken);
+                            readerTx = readerDriver.session().beginTransaction();
+                        }
+                        return readerTx.run(statement);
                     }
-                    return readerTx.run(statement);
                 }
             }
         }
