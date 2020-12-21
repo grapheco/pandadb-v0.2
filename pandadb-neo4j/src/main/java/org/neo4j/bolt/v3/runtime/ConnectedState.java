@@ -72,9 +72,9 @@ public class ConnectedState implements BoltStateMachineState {
                             Neo4jBoltAddressValue res = (Neo4jBoltAddressValue) rpcClient.invokeSync(peerId.getEndpoint(), request, 5000);
 
                             if (peerId.equals(leader)) {
-                                leaderUri = peerId.getIp() + res.toString();
+                                leaderUri = peerId.getIp() + ":" + res.toString().split(":")[1];
                             }
-                            peersArray.add(peerId.getIp() + res.toString());
+                            peersArray.add(peerId.getIp() + ":" + res.toString().split(":")[1]);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
