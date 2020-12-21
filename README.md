@@ -191,7 +191,7 @@ import  dependency first:
 
 ```
 // cluster: 127.0.0.1:7610, 127.0.0.1:7620, 127.0.0.1:7630
-val driver = GraphDatabase.driver("127.0.0.1:7610", AuthTokens.basic("neo4j", "neo4j"))
+val driver = GraphDatabase.driver("bolt://127.0.0.1:7610", AuthTokens.basic("neo4j", "neo4j"))
 
 //write or read by session
 val session = driver.session()
