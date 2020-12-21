@@ -12,7 +12,7 @@ this command will create `panda-driver-<version>.jar` in `target` directory.
  If you have a pandadb-cluster, you can create driver by using any cluster's IP and bolt port.  
 ```
 // cluster: 127.0.0.1:7610, 127.0.0.1:7620, 127.0.0.1:7630
-val driver = GraphDatabase.driver("127.0.0.1:7610", AuthTokens.basic("neo4j", "neo4j"))
+val driver = GraphDatabase.driver("bolt://127.0.0.1:7610", AuthTokens.basic("neo4j", "neo4j"))
 
 //write or read by session
 val session = driver.session()
